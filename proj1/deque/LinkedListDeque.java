@@ -171,7 +171,8 @@ public class LinkedListDeque<Item> implements Iterable<Item>{
     //equals
     @Override
     public boolean equals(Object o){
-        if(o instanceof LinkedListDeque otherdeque){
+        if(o instanceof LinkedListDeque ){
+            LinkedListDeque otherdeque = (LinkedListDeque)  o;
             Node p1 = this.sentinel.next;
             Node p2 = otherdeque.sentinel.next;
             if(this.size != otherdeque.size){
