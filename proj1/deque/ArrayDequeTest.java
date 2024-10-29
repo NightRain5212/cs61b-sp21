@@ -40,4 +40,15 @@ public class ArrayDequeTest {
             assertEquals(i,(int)a.removeFirst());
         }
     }
+
+    @Test
+    public void equalsTest(){
+        ArrayDeque<Integer> a = new ArrayDeque<>();
+        LinkedListDeque<Integer> b = new LinkedListDeque<>();
+        for(int i = 1 ; i < 10 ;i++){
+            a.addFirst(i);
+            b.addFirst(i);
+        }
+        assertTrue(a.equals(b));
+    }
 }
