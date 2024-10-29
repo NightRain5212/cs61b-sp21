@@ -190,26 +190,4 @@ public class LinkedListDeque<Item> implements Iterable<Item>{
         return false;
     }
 
-    public static void main(String[] args){
-        LinkedListDeque<Integer> l = new LinkedListDeque<>();
-
-        l.addFirst(2);
-//        System.out.println(l.isEmpty());
-//        System.out.println(l.removefirst());
-//        System.out.println(l.removelast());
-        l.addFirst(1);
-        l.addFirst(2);
-//        l.addfirst(3);
-        l.addLast(4);
-        l.addLast(5);
-        l.addLast(6);
-//        l.printDeque();
-//        System.out.println(l.removefirst());
-//        System.out.println(l.removefirst());
-        l.printDeque();
-//        System.out.println(l.removelast());
-//        System.out.println(l.removelast());
-//        l.printDeque();
-        System.out.println(l.getRecursive(5));
-    }
 }

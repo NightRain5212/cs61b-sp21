@@ -167,24 +167,4 @@ public class ArrayDeque<Item> implements Iterable<Item>{
         capacity = newcapacity;
     }
 
-//    public static void main(String[] args){
-//        ArrayDeque<Integer> l =new ArrayDeque<>();
-//        System.out.println(l.isEmpty());
-//        l.addFirst(1);
-//        l.addFirst(2);
-//        l.addFirst(3);
-//        l.addLast(4);
-//        l.addLast(5);
-//        l.addLast(6);
-//        System.out.println(l.size());
-//        l.printDeque();
-//        System.out.println(l.removeFirst());
-//        System.out.println(l.removeLast());
-//        System.out.println(l.removeFirst());
-//        System.out.println(l.removeLast());
-//        System.out.println(l.removeFirst());
-//        System.out.println(l.removeFirst());
-//        System.out.println(l.size());
-//        l.printDeque();
-//    }
 }
