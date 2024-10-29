@@ -20,7 +20,7 @@ public class ArrayDeque<Item> implements Iterable<Item>{
         size = 0;
         items = (Item[]) new Object[capacity];
         firstIndex = 0;
-        lastIndex = -1;
+        lastIndex = capacity-1;
     }
 
     //addFirst
@@ -41,7 +41,7 @@ public class ArrayDeque<Item> implements Iterable<Item>{
             resize(capacity*2);
         }
         //更新指向
-        lastIndex = (lastIndex+1+capacity)%capacity;
+        lastIndex = (lastIndex + 1 )%capacity;
         items[lastIndex] = t;
         //更新大小
         size += 1;
@@ -73,11 +73,12 @@ public class ArrayDeque<Item> implements Iterable<Item>{
         }
         Item returnitem = items[lastIndex];
         items[lastIndex] = null;
+        //调整数组大小
+
         //更新指向
         lastIndex = (lastIndex - 1 + capacity)%capacity;
         //更新大小
         size -= 1;
-        //调整数组大小
         if(size < capacity/4){
             resize(capacity/4);
         }
@@ -154,18 +155,18 @@ public class ArrayDeque<Item> implements Iterable<Item>{
         Item[] newitems = (Item[]) new Object[newcapacity];
         //复制队列元素
         int j = (firstIndex + (newcapacity - capacity))% newcapacity;
-        for(int i = firstIndex;i >= lastIndex; i=(i+1)%capacity,j++){
+        for(int i = firstIndex;i != lastIndex; i=(i+1)%capacity,j = (j+1)%newcapacity){
             newitems[j] = items[i];
-            if(i == lastIndex){
-                newitems[j] = items[i];
-                break;
-            }
         }
+        newitems[j] = items[lastIndex];
+
+        //更新指向
+        firstIndex = firstIndex + newcapacity - capacity;
+        lastIndex = j;
 
         //更新引用
         items = newitems;
         //更新容量大小
         capacity = newcapacity;
     }
-
 }
