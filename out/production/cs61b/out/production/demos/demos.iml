@@ -3,11 +3,9 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
-      <sourceFolder url="file://$MODULE_DIR$/skeleton-sp21-master/skeleton-sp21-master/lab1" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/demos" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$" isTestSource="false" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="javalib" level="project" />
   </component>
 </module>

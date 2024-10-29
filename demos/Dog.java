@@ -32,15 +32,18 @@ public class Dog {
         }
     }
 
-    public static void main(String[] args){
-        Dog chester = new Dog(17);
-        Dog yusof = new Dog(150);
-        Dog larger = Dog.maxDog(chester,yusof);
-        larger.makeNoise();
-        Dog larger2 = chester.maxDog(yusof);
-        larger2.makeNoise();
-        System.out.println(Dog.binomen);
-        System.out.println(chester.binomen);
+//    public static void main(String[] args){
+//        Dog chester = new Dog(17);
+//        Dog yusof = new Dog(150);
+//        Dog larger = Dog.maxDog(chester,yusof);
+//        larger.makeNoise();
+//        Dog larger2 = chester.maxDog(yusof);
+//        larger2.makeNoise();
+//        System.out.println(Dog.binomen);
+//        System.out.println(chester.binomen);
+//
+//    }
 
-    }
+
+
 }
