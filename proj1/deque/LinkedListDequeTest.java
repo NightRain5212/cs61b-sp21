@@ -134,4 +134,15 @@ public class LinkedListDequeTest {
 
 
     }
+
+    @Test
+    public void equlsTest(){
+        LinkedListDeque<Integer> a = new LinkedListDeque<>();
+        LinkedListDeque<Integer> b = new LinkedListDeque<>();
+        for(int i = 0;i<1000;i++) {
+            a.addFirst(i);
+            b.addFirst(i);
+        }
+        assertTrue(a.equals(b));
+    }
 }
