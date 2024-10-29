@@ -129,10 +129,10 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
     }
 
     //resize扩容
-    public void resize(int newcapacity) {
+    private void resize(int newcapacity) {
         T[] newitems = (T[]) new Object[newcapacity];
         //复制队列元素
-        int j = (firstIndex + (newcapacity - capacity)) % newcapacity;
+        int j = (firstIndex + (newcapacity - capacity) + newcapacity) % newcapacity;
         for (int i = firstIndex; i != lastIndex; i = (i + 1) % capacity,
                 j = (j + 1) % newcapacity) {
             newitems[j] = items[i];
@@ -141,7 +141,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
 
         //更新指向
         firstIndex = (firstIndex + newcapacity - capacity + newcapacity) % newcapacity;
-        lastIndex = (j + newcapacity ) % newcapacity;
+        lastIndex = (j + newcapacity) % newcapacity;
 
         //更新引用
         items = newitems;
