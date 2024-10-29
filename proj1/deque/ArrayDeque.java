@@ -2,7 +2,7 @@ package deque;
 
 import java.util.Iterator;
 
-public class ArrayDeque<Item> implements Iterable<Item>{
+public class ArrayDeque<Item> implements Iterable<Item>,Deque<Item>{
     //跟踪大小
     private int size;
     //存储数据的数组
@@ -24,6 +24,7 @@ public class ArrayDeque<Item> implements Iterable<Item>{
     }
 
     //addFirst
+    @Override
     public void addFirst(Item t){
         if(size == capacity){
             resize(capacity * 2);
@@ -36,6 +37,7 @@ public class ArrayDeque<Item> implements Iterable<Item>{
     }
 
     //addLast
+    @Override
     public void addLast(Item t){
         if(size == capacity){
             resize(capacity*2);
@@ -48,6 +50,7 @@ public class ArrayDeque<Item> implements Iterable<Item>{
     }
 
     //removeFirst
+    @Override
     public Item removeFirst(){
         if(size == 0){
             return null;
@@ -67,6 +70,7 @@ public class ArrayDeque<Item> implements Iterable<Item>{
     }
 
     //removeLast
+    @Override
     public Item removeLast(){
         if(size == 0){
             return null;
@@ -86,24 +90,28 @@ public class ArrayDeque<Item> implements Iterable<Item>{
     }
 
     //size
+    @Override
     public int size (){
         return size;
     }
 
     //get
+    @Override
     public Item get(int i){
         return items[(firstIndex + i)%capacity];
     }
 
-    //isEmpty
-    public boolean isEmpty(){
-        if(size == 0){
-            return true;
-        }
-        return false;
-    }
+//    //isEmpty
+//    @Override
+//    public boolean isEmpty(){
+//        if(size == 0){
+//            return true;
+//        }
+//        return false;
+//    }
 
     //printDeque
+    @Override
     public void printDeque(){
         for(Item i : this){
             System.out.print(i+" ");

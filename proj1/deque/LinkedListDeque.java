@@ -2,7 +2,7 @@ package deque;
 
 import java.util.Iterator;
 
-public class LinkedListDeque<Item> implements Iterable<Item>{
+public class LinkedListDeque<Item> implements Iterable<Item>,Deque<Item>{
 
     //建立链表的节点
      private class Node{
@@ -36,6 +36,7 @@ public class LinkedListDeque<Item> implements Iterable<Item>{
     }
 
     // addfirst
+    @Override
     public void addFirst(Item t){
 //        sentinel.next = new Node(sentinel,t,sentinel.next);
 //        size += 1;
@@ -51,6 +52,7 @@ public class LinkedListDeque<Item> implements Iterable<Item>{
     }
 
     // addlast
+    @Override
     public void addLast(Item t){
 //        sentinel.prev = new Node(sentinel.prev,t,sentinel);
 //        if(size == 1){
@@ -64,6 +66,7 @@ public class LinkedListDeque<Item> implements Iterable<Item>{
     }
 
     //removefirst
+    @Override
     public Item removeFirst(){
         if(size == 0){
             return null;
@@ -77,6 +80,7 @@ public class LinkedListDeque<Item> implements Iterable<Item>{
     }
 
     //removelast
+    @Override
     public Item removeLast(){
         if(size == 0){
             return null;
@@ -88,21 +92,24 @@ public class LinkedListDeque<Item> implements Iterable<Item>{
         return returnitem;
     }
 
-    // isEmpty
-    public boolean isEmpty(){
-        if(size == 0){
-            return true;
-        }else  {
-            return false;
-        }
-    }
+//    // isEmpty
+//    @Override
+//    public boolean isEmpty(){
+//        if(size == 0){
+//            return true;
+//        }else  {
+//            return false;
+//        }
+//    }
 
     // size
+    @Override
     public int size(){
         return this.size;
     }
 
     //get
+    @Override
     public Item get(int i){
         if(size == 0){
             return null;
@@ -133,6 +140,7 @@ public class LinkedListDeque<Item> implements Iterable<Item>{
     }
 
     //printDeque
+    @Override
     public void printDeque(){
 //        Node p = this.sentinel.next;
 //        while(p != this.sentinel){
