@@ -15,6 +15,7 @@ public class ArrayDeque<Item> implements Iterable<Item>, Deque<Item> {
     private int firstIndex;
     //末端元素位置
     private int lastIndex;
+
     //构造函数
     public ArrayDeque() {
         size = 0;
@@ -39,7 +40,7 @@ public class ArrayDeque<Item> implements Iterable<Item>, Deque<Item> {
     //addLast
     @Override
     public void addLast(Item t) {
-        if(size == capacity) {
+        if (size == capacity) {
             resize(capacity * 2);
         }
         //更新指向
@@ -52,7 +53,7 @@ public class ArrayDeque<Item> implements Iterable<Item>, Deque<Item> {
     //removeFirst
     @Override
     public Item removeFirst() {
-        if(size == 0){
+        if (size == 0) {
             return null;
         }
         //记录返回值并清空
@@ -63,7 +64,7 @@ public class ArrayDeque<Item> implements Iterable<Item>, Deque<Item> {
         //更新指向
         firstIndex = (firstIndex + 1 + capacity) % capacity;
         //调整数组大小
-        if(size < capacity/4) {
+        if (size < capacity / 4) {
             resize(capacity / 4);
         }
         return returnitem;
@@ -72,7 +73,7 @@ public class ArrayDeque<Item> implements Iterable<Item>, Deque<Item> {
     //removeLast
     @Override
     public Item removeLast() {
-        if(size == 0) {
+        if (size == 0) {
             return null;
         }
         Item returnitem = items[lastIndex];
@@ -83,7 +84,7 @@ public class ArrayDeque<Item> implements Iterable<Item>, Deque<Item> {
         lastIndex = (lastIndex - 1 + capacity) % capacity;
         //更新大小
         size -= 1;
-        if(size < capacity/4) {
+        if (size < capacity / 4) {
             resize(capacity / 4);
         }
         return returnitem;
@@ -91,14 +92,14 @@ public class ArrayDeque<Item> implements Iterable<Item>, Deque<Item> {
 
     //size
     @Override
-    public int size () {
+    public int size() {
         return size;
     }
 
     //get
     @Override
     public Item get(int i) {
-        if(i < 0 || i >= size){
+        if (i < 0 || i >= size) {
             return null;
         }
         return items[(firstIndex + i) % capacity];
@@ -116,38 +117,23 @@ public class ArrayDeque<Item> implements Iterable<Item>, Deque<Item> {
     //printDeque
     @Override
     public void printDeque() {
-        for(Item i : this) {
+        for (Item i : this) {
             System.out.print(i + " ");
         }
         System.out.println();
     }
 
-    //iterators
-    private class dequeIterator implements Iterator<Item> {
-        int curpos = 0;
-        @Override
-        public boolean hasNext() {
-            return curpos < size;
-        }
-        @Override
-        public Item next() {
-            Item returnitem = items[(curpos + firstIndex) % capacity];
-            curpos += 1;
-            return returnitem;
-        }
-    }
     @Override
     public Iterator<Item> iterator() {
         return new dequeIterator();
     }
-
 
     //resize扩容
     public void resize(int newcapacity) {
         Item[] newitems = (Item[]) new Object[newcapacity];
         //复制队列元素
         int j = (firstIndex + (newcapacity - capacity)) % newcapacity;
-        for(int i = firstIndex;i != lastIndex; i=(i + 1) % capacity,j = (j + 1) % newcapacity) {
+        for (int i = firstIndex; i != lastIndex; i = (i + 1) % capacity, j = (j + 1) % newcapacity) {
             newitems[j] = items[i];
         }
         newitems[j] = items[lastIndex];
@@ -162,27 +148,43 @@ public class ArrayDeque<Item> implements Iterable<Item>, Deque<Item> {
         capacity = newcapacity;
     }
 
-
     @Override
     public boolean equals(Object o) {
-        if( o == null){
+        if (o == null) {
             return false;
         }
-        if (this == o){
+        if (this == o) {
             return true;
         }
-        if(! (o instanceof Deque)){
+        if (!(o instanceof Deque)) {
             return false;
         }
         Deque otherdeque = (Deque) o;
-        if(this.size != otherdeque.size()){
+        if (this.size != otherdeque.size()) {
             return false;
         }
-        for(int i = 0;i<this.size;i++) {
-            if(this.get(i) != otherdeque.get(i)){
+        for (int i = 0; i < this.size; i++) {
+            if (this.get(i) != otherdeque.get(i)) {
                 return false;
             }
         }
         return true;
+    }
+
+    //iterators
+    private class dequeIterator implements Iterator<Item> {
+        int curpos = 0;
+
+        @Override
+        public boolean hasNext() {
+            return curpos < size;
+        }
+
+        @Override
+        public Item next() {
+            Item returnitem = items[(curpos + firstIndex) % capacity];
+            curpos += 1;
+            return returnitem;
+        }
     }
 }

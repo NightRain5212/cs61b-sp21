@@ -4,29 +4,6 @@ import java.util.Iterator;
 
 public class LinkedListDeque<Item> implements Iterable<Item>, Deque<Item> {
 
-    //建立链表的节点
-    private class Node {
-        //指向之前一个节点
-        Node prev;
-        //包含的元素
-        Item item;
-        //指向后面一个节点
-        Node next;
-
-        //构造函数
-        public Node(Node prev, Item item, Node next) {
-            this.prev = prev;
-            this.item = item;
-            this.next = next;
-        }
-
-        public Node() {
-            item = null;
-            next = this;
-            prev = next;
-        }
-    }
-
     private Node sentinel;
     //实时跟踪大小
     private int size;
@@ -94,6 +71,12 @@ public class LinkedListDeque<Item> implements Iterable<Item>, Deque<Item> {
         return returnitem;
     }
 
+    // size
+    @Override
+    public int size() {
+        return this.size;
+    }
+
 //    // isEmpty
 //    @Override
 //    public boolean isEmpty(){
@@ -104,16 +87,10 @@ public class LinkedListDeque<Item> implements Iterable<Item>, Deque<Item> {
 //        }
 //    }
 
-    // size
-    @Override
-    public int size() {
-        return this.size;
-    }
-
     //get
     @Override
     public Item get(int i) {
-        if( i < 0 || i > size) {
+        if (i < 0 || i > size) {
             return null;
         }
         if (size == 0) {
@@ -163,6 +140,52 @@ public class LinkedListDeque<Item> implements Iterable<Item>, Deque<Item> {
         return new dequeiterator();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Deque)) {
+            return false;
+        }
+        Deque otherdeque = (Deque) o;
+        if (this.size != otherdeque.size()) {
+            return false;
+        }
+        for (int i = 0; i < this.size; i++) {
+            if (this.get(i) != otherdeque.get(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //建立链表的节点
+    private class Node {
+        //指向之前一个节点
+        Node prev;
+        //包含的元素
+        Item item;
+        //指向后面一个节点
+        Node next;
+
+        //构造函数
+        public Node(Node prev, Item item, Node next) {
+            this.prev = prev;
+            this.item = item;
+            this.next = next;
+        }
+
+        public Node() {
+            item = null;
+            next = this;
+            prev = next;
+        }
+    }
+
     private class dequeiterator implements Iterator<Item> {
         Node p = sentinel.next;
 
@@ -181,29 +204,6 @@ public class LinkedListDeque<Item> implements Iterable<Item>, Deque<Item> {
             p = p.next;
             return returnitem;
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if( o == null){
-            return false;
-        }
-        if (this == o){
-            return true;
-        }
-        if(! (o instanceof Deque)){
-            return false;
-        }
-        Deque otherdeque = (Deque) o;
-        if(this.size != otherdeque.size()){
-            return false;
-        }
-        for(int i = 0;i<this.size;i++) {
-            if(this.get(i) != otherdeque.get(i)){
-                return false;
-            }
-        }
-        return true;
     }
 
 }
