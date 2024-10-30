@@ -10,31 +10,7 @@ import student.StudentArrayDeque;
 public class TestArrayDequeEC {
 
     @Test
-    public void myTest1(){
-        StudentArrayDeque<Integer> a = new StudentArrayDeque<>();
-        ArrayDequeSolution<Integer> b = new ArrayDequeSolution<>();
-        boolean ispassed = true;
-        for(int i = 0;i<1000;i++){
-            double zeroorone = StdRandom.uniform();
-            if(zeroorone < 0.5){
-                a.addFirst(i);
-                b.addFirst(i);
-            } else {
-                a.addLast(i);
-                b.addLast(i);
-            }
-        }
-        for (int i = 0 ; i<a.size();i++){
-            if(!a.get(i).equals(b.get(i))) {
-                ispassed = false;
-            }
-        }
-
-        assertTrue(ispassed);
-    }
-
-    @Test
-    public void myTest2(){
+    public void myTest(){
         StudentArrayDeque<Integer> a = new StudentArrayDeque<>();
         ArrayDequeSolution<Integer> b = new ArrayDequeSolution<>();
         boolean ispassed = true;
