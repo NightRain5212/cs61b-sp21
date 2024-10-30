@@ -64,7 +64,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         //更新指向
         firstIndex = (firstIndex + 1 + capacity) % capacity;
         //调整数组大小
-        if ( (capacity >= 16) && size < capacity / 4) {
+        if ((capacity >= 16) && size < capacity / 4) {
             resize(capacity / 4);
         }
         return returnitem;
@@ -84,7 +84,7 @@ public class ArrayDeque<T> implements Iterable<T>, Deque<T> {
         lastIndex = (lastIndex - 1 + capacity) % capacity;
         //更新大小
         size -= 1;
-        if ( (capacity >= 16) && size < capacity / 4) {
+        if ((capacity >= 16) && size < capacity / 4) {
             resize(capacity / 4);
         }
         return returnitem;
