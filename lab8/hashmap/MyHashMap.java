@@ -210,11 +210,35 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
 
 
     public V remove(K key) {
-        throw new UnsupportedOperationException();
+        if(!this.containsKey(key)) {
+            return null;
+        }
+        int hc = Math.abs(key.hashCode());
+        int index = hc % bucketsSize;
+        for(Node i : buckets[index]) {
+            if(i.key.equals(key)) {
+                V returnvalue = i.value;
+                buckets[index].remove(i);
+                return returnvalue;
+            }
+        }
+        return null;
     }
 
     public V remove(K key, V value) {
-        throw new UnsupportedOperationException();
+        if(!this.containsKey(key)) {
+            return null;
+        }
+        int hc = Math.abs(key.hashCode());
+        int index = hc % bucketsSize;
+        for(Node i : buckets[index]) {
+            if(i.key.equals(key)&&i.value.equals(value)) {
+                V returnvalue = i.value;
+                buckets[index].remove(i);
+                return returnvalue;
+            }
+        }
+        return null;
     }
 
     public Set<K> keySet() {
