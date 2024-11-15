@@ -194,10 +194,4 @@ public class Repository implements Serializable {
             System.out.println();
         }
     }
-
-    public static void main(String[] args) throws IOException {
-        Repository repo = new Repository();
-        repo.init();
-    }
-
 }
