@@ -17,7 +17,7 @@ public class Main {
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args)  {
         try {
             // TODO: what if args is empty?
             //没有参数的情况报错
