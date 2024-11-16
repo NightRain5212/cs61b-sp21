@@ -126,14 +126,15 @@ public class Repository implements Serializable {
             System.exit(0);
         }
         //没有消息报错
-        if(c.getMessage()==null) {
+        if(c.getMessage()==null || c.getMessage().isEmpty()) {
             message("Please enter a commit message.");
             System.exit(0);
         }
 
+
         for(String filename:staged.keySet()) {
             //同名文件(被修改的)更新追踪
-            if(!staged.get(filename).equals(c.tracked.get(filename))) {
+            if(c.tracked.containsKey(filename) && !staged.get(filename).equals(c.tracked.get(filename))) {
                 c.tracked.replace(filename,staged.get(filename));
             }
             //追踪新文件
@@ -145,6 +146,7 @@ public class Repository implements Serializable {
         index.load();
         //提交到树中，更新头指针
         index.add(c);
+        index.setHead(_sha1(c));
         index.save();
 
         //保存追踪文件到仓库。
@@ -181,11 +183,18 @@ public class Repository implements Serializable {
         //储存信息
         Blob blob = new Blob(file);
 
+        //更新删除区
+        loadRemoved();
+        removed.remove(file.getName());
+        saveRemoved();
+
         //若该文件与当前提交的版本相同则不添加
-        if(!index.getHead().tracked.isEmpty() && index.getHead().tracked.get(file.getName()).equals(blob)){
+        if(!index.getHead().tracked.isEmpty() && index.getHead().tracked.containsKey(file.getName()) && index.getHead().tracked.get(file.getName()).equals(blob)){
             //如果已经暂存则从暂存区删除
             staged.remove(file.getName());
             writeObject(STAGED,staged);
+            saveStaged();
+            index.save();
             return;
         }
 
@@ -199,6 +208,7 @@ public class Repository implements Serializable {
         //保存文件
         writeObject(STAGED,staged);
         index.save();
+
     }
 
     public void checkout1(String filename) throws IOException {
@@ -308,8 +318,6 @@ public class Repository implements Serializable {
             message("No reason to remove the file.");
             System.exit(0);
         }
-        //取消暂存该文件
-        staged.remove(filename);
         //如果被当前提交追踪则删除
         if(index.getHead().tracked.containsKey(filename)) {
             Blob blob = index.getHead().tracked.get(filename);
@@ -320,6 +328,8 @@ public class Repository implements Serializable {
             File file = join(CWD,"%s".formatted(filename));
             file.delete();
         }
+        //从暂存区删除
+        staged.remove(filename);
 
         //保存文件
         writeObject(STAGED,staged);
@@ -431,7 +441,10 @@ public class Repository implements Serializable {
         for(String filename: Objects.requireNonNull(plainFilenamesIn(CWD))) {
             File file = join(CWD,"%s".formatted(filename));
             Blob blob = new Blob(file);
-            if(!index.getHead().tracked.containsKey(filename) && target.tracked.containsKey(filename)) {
+            if(index.getHead().tracked.containsKey(filename)) {
+                continue;
+            }
+            if(target.tracked.containsKey(filename)) {
                 message("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }

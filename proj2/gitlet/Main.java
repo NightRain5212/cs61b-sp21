@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.Date;
 
 import static gitlet.Repository.CWD;
+import static gitlet.Repository.GITLET_DIR;
 import static gitlet.Utils.*;
 public class Main {
     static Repository repo = new Repository();
@@ -23,6 +24,11 @@ public class Main {
             //没有参数的情况报错
             if (args.length == 0) {
                 message("Please enter a command.");
+                System.exit(0);
+            }
+            //未初始化报错
+            if(!GITLET_DIR.exists()) {
+                message("Not in an initialized Gitlet directory.");
                 System.exit(0);
             }
 
@@ -44,8 +50,12 @@ public class Main {
                 case "commit":
                     repo.load();
                     String msg = args[1];
+                    if(msg.isEmpty()) {
+                        message("Please enter a commit message.");
+                        System.exit(0);
+                    }
                     Date date = new Date();
-                    Commit p = repo.index.getParent();
+                    Commit p = repo.index.getHead();
                     Commit newCommit = new Commit(msg, "n", date, p);
                     repo.commit(newCommit);
                     repo.save();
