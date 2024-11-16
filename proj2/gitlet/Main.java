@@ -26,11 +26,6 @@ public class Main {
                 message("Please enter a command.");
                 System.exit(0);
             }
-            //未初始化报错
-            if(!GITLET_DIR.exists()) {
-                message("Not in an initialized Gitlet directory.");
-                System.exit(0);
-            }
 
             String firstArg = args[0];
             switch (firstArg) {
@@ -39,6 +34,11 @@ public class Main {
                     repo.init();
                     break;
                 case "add":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     // TODO: handle the `add [filename]` command
                     String filename = args[1];
                     File file = join(CWD, "%s".formatted(filename));
@@ -48,6 +48,11 @@ public class Main {
                     break;
                 // TODO: FILL THE REST IN
                 case "commit":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     repo.load();
                     String msg = args[1];
                     if(msg.isEmpty()) {
@@ -61,29 +66,59 @@ public class Main {
                     repo.save();
                     break;
                 case "rm":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     String filename3 = args[1];
                     repo.load();
                     repo.remove(filename3);
                     repo.save();
                     break;
                 case "log":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     repo.load();
                     repo.log();
                     break;
                 case "global-log":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     repo.load();
                     repo.global_log();
                     break;
                 case "find":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     String filename4 = args[1];
                     repo.load();
                     repo.find(filename4);
                     break;
                 case "status":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     repo.load();
                     repo.status();
                     break;
                 case "checkout":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     repo.load();
                     if (args.length == 3) {
                         String filename1 = args[2];
@@ -99,23 +134,43 @@ public class Main {
                     repo.save();
                     break;
                 case "branch":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     repo.load();
                     String branchname1 = args[1];
                     repo.branch(branchname1);
                     break;
                 case "rm-branch":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     repo.load();
                     String branchName2 = args[1];
                     repo.removeBranch(branchName2);
                     repo.save();
                     break;
                 case "reset":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     repo.load();
                     String commitId = args[1];
                     repo.reset(commitId);
                     repo.save();
                     break;
                 case "merge":
+                    //未初始化报错
+                    if(!GITLET_DIR.exists()) {
+                        message("Not in an initialized Gitlet directory.");
+                        System.exit(0);
+                    }
                     repo.load();
                     String branchName = args[1];
                     repo.merge(branchName);
