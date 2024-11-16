@@ -1,5 +1,6 @@
 package gitlet;
 
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -37,11 +38,33 @@ public class Repository implements Serializable {
     public static final File STAGED = join(CWD,".gitlet","staged");
     public static final File REPO = join(CWD,".gitlet","repo");
     public static final File SAVED_DIR = join(CWD,".gitlet","saved");
+    public static final File REMOVED = join(CWD,".gitlet","removed");
+
     /* TODO: fill in the rest of this class. */
     //管理提交的目录
     public Index index;
     //暂存区
     public HashMap<String,Blob> staged;
+    public HashMap<String,Blob> removed;
+
+    /*tree：
+    * - .gitlet/
+    *   -commits
+    *       -commit1
+    *       -commit2
+    *   -saved
+    *       -sha1(commit1)
+    *           -tracked files
+    *       -sha1(commit2)
+    *           -tracked files
+    *   -index
+    *   -staged
+    *   -repo
+    *   -removed
+    * - working trees
+    *
+    *
+    * */
 
     //初始化
     public void init() throws IOException {
@@ -55,13 +78,16 @@ public class Repository implements Serializable {
         REPO.createNewFile();
         INDEX.createNewFile();
         STAGED.createNewFile();
+        REMOVED.createNewFile();
         Date date = new Date(0L);
         Commit init = new Commit("initial commit","n",date,null);
         staged = new HashMap<>();
         index = new Index();
+        removed = new HashMap<>();
         index.add(init);
         index.save();
         writeObject(STAGED,staged);
+        writeObject(REMOVED,removed);
         this.save();
     }
 
@@ -73,6 +99,23 @@ public class Repository implements Serializable {
         Repository saved = readObject(REPO,Repository.class);
         index = saved.index;
         staged = saved.staged;
+        removed = saved.removed;
+    }
+
+    public void loadStaged() {
+        staged = readObject(STAGED,staged.getClass());
+    }
+
+    public void saveStaged() {
+        writeObject(STAGED,staged);
+    }
+
+    public void loadRemoved() {
+        removed = readObject(REMOVED,removed.getClass());
+    }
+
+    public void saveRemoved() {
+        writeObject(REMOVED,removed);
     }
 
     public void commit(Commit c) throws IOException {
@@ -121,10 +164,13 @@ public class Repository implements Serializable {
 
         //清空暂存区
         staged.clear();
+        //保存
+        writeObject(STAGED,staged);
     }
 
     public void add(File file) {
         //读取文件
+        index.load();
         staged = readObject(STAGED,staged.getClass());
         //文件不存在报错
         if(!file.exists()) {
@@ -152,6 +198,7 @@ public class Repository implements Serializable {
         }
         //保存文件
         writeObject(STAGED,staged);
+        index.save();
     }
 
     public void checkout1(String filename) throws IOException {
@@ -162,28 +209,85 @@ public class Repository implements Serializable {
         File file = join(CWD,"%s".formatted(blob.getName()));
         file.createNewFile();
         writeContents(file,blob.getContent());
+        index.save();
     }
 
     public void checkout2(String commitId,String filename) throws IOException {
         index.load();
-        Commit chosen = index.get(commitId);
+        Commit chosen = index.getCommit(commitId);
         Blob check = chosen.tracked.get(filename);
         File file = join(CWD,"%s".formatted(filename));
         file.createNewFile();
         writeContents(file,check.getContent());
+        index.save();
     }
 
-    public void checkout_b(String branchName) {
+    public void checkout_b(String branchName) throws IOException {
+        index.load();
+        staged = readObject(STAGED,staged.getClass());
+        removed = readObject(REMOVED,removed.getClass());
+        if(!index.containsBranch(branchName)) {
+            message("No such branch exists.");
+            System.exit(0);
+        }
+        if(index.getCurrentBranch().equals(branchName)) {
+            message("No need to checkout the current branch.");
+            System.exit(0);
+        }
+        //检查是否有未追踪文件被覆盖
+        boolean isuntracked = false;
+        for(String filename: Objects.requireNonNull(plainFilenamesIn(CWD))) {
+            if(!index.getHead().tracked.containsKey(filename) && index.getBranchHeadCommit(branchName).tracked.containsKey(filename)) {
+                isuntracked = true;
+                break;
+            }
+        }
+        if(isuntracked) {
+            message("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
+        //切换分支
+        index.changeBranch(branchName);
+        //删除在当前分支追踪而不在检出分支的文件
+        for(String filename: Objects.requireNonNull(plainFilenamesIn(CWD))) {
+            if(!index.getHead().tracked.containsKey(filename)) {
+                File file = join(CWD,"%s".formatted(filename));
+                Blob blob = new Blob(file);
+                file.delete();
+                removed.put(filename,blob);
+            }
+        }
+        //更新工作目录
+        for(String filename:index.getHead().tracked.keySet()) {
+            File file = join(CWD,"%s".formatted(filename));
+            Blob blob = index.getHead().tracked.get(filename);
+            file.createNewFile();
+            writeContents(file,blob.getContent());
+        }
 
+
+        //清除暂存区
+        staged.clear();
+        //保存文件
+        index.save();
+        writeObject(STAGED,staged);
+        writeObject(REMOVED,removed);
     }
 
     public void log() {
+        index.load();
         ArrayList<Commit> logs = index.log();
         for(Commit i :logs) {
             System.out.println("===");
             Formatter formatter1 = new Formatter();
             formatter1.format("commit %s",_sha1(i));
             System.out.println(formatter1.toString());
+            //处理合并提交
+            if(i.parent.size() == 2) {
+                Formatter formatter2 = new Formatter();
+                formatter2.format("Merge: %.7s %.7s",_sha1(i.parent.get(0)),_sha1(i.parent.get(1)));
+                System.out.println(formatter2.toString());
+            }
             //设置日期格式
             Instant instant = i.getDate().toInstant();
             ZonedDateTime zdt = instant.atZone(ZoneId.of("Asia/Shanghai"));
@@ -193,5 +297,160 @@ public class Repository implements Serializable {
             System.out.println(i.getMessage());
             System.out.println();
         }
+    }
+
+    public void remove(String filename) {
+        //读取文件
+        staged = readObject(STAGED,staged.getClass());
+        removed = readObject(REMOVED,removed.getClass());
+        //既没有暂存也没有追踪时报错
+        if(!staged.containsKey(filename) && !index.getHead().tracked.containsKey(filename)) {
+            message("No reason to remove the file.");
+            System.exit(0);
+        }
+        //取消暂存该文件
+        staged.remove(filename);
+        //如果被当前提交追踪则删除
+        if(index.getHead().tracked.containsKey(filename)) {
+            Blob blob = index.getHead().tracked.get(filename);
+            staged.put(filename,blob);
+            index.getHead().tracked.remove(filename);
+            removed.put(filename,blob);
+            //删除工作区的文件
+            File file = join(CWD,"%s".formatted(filename));
+            file.delete();
+        }
+
+        //保存文件
+        writeObject(STAGED,staged);
+        writeObject(REMOVED,removed);
+
+    }
+
+    public void global_log() {
+        index.load();
+        for(Commit c:index.getAllCommits()) {
+            if(c == null){
+                continue;
+            }
+            //打印日志
+            System.out.println("===");
+            Formatter formatter1 = new Formatter();
+            formatter1.format("commit %s",_sha1(c));
+            System.out.println(formatter1.toString());
+            //处理合并提交
+            if(c.parent.size() == 2) {
+                Formatter formatter2 = new Formatter();
+                formatter2.format("Merge: %.7s %.7s",_sha1(c.parent.get(0)),_sha1(c.parent.get(1)));
+                System.out.println(formatter2.toString());
+            }
+            //设置日期格式
+            Instant instant = c.getDate().toInstant();
+            ZonedDateTime zdt = instant.atZone(ZoneId.of("Asia/Shanghai"));
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z",Locale.ENGLISH);
+            String dateMsg = zdt.format(dtf);
+            System.out.println("Date: "+dateMsg);
+            System.out.println(c.getMessage());
+            System.out.println();
+        }
+    }
+
+    public void find(String msg){
+        index.load();
+        boolean isExist = false;
+        for(Commit c:index.getAllCommits()) {
+            if(msg.equals(c.getMessage()) ) {
+                isExist = true;
+                System.out.println(_sha1(c));
+            }
+        }
+        //若不存在相应的文件报错
+        if(!isExist) {
+            message("Found no commit with that message.");
+            System.exit(0);
+        }
+
+    }
+
+    public void status() {
+        index.load();
+        staged = readObject(STAGED,staged.getClass());
+        removed = readObject(REMOVED,removed.getClass());
+        //显示分支
+        System.out.println("=== Branches ===");
+        String cur = "*" + index.getCurrentBranch();
+        System.out.println(cur);
+        for(String str:index.getBranches()) {
+            if(str.equals(index.getCurrentBranch())) {
+                continue;
+            }
+            System.out.println(str);
+        }
+        System.out.println();
+        //显示暂存文件
+        System.out.println("=== Staged Files ===");
+        for(String str:staged.keySet()) {
+            System.out.println(str);
+        }
+        System.out.println();
+        //显示删除文件
+        System.out.println("=== Removed Files ===");
+        for(String str:removed.keySet()) {
+            System.out.println(str);
+        }
+        System.out.println();
+        //修改但未暂存文件
+        System.out.println("=== Modifications Not Staged For Commit ===");
+        System.out.println();
+        //未跟踪文件
+        System.out.println("=== Untracked Files ===");
+        System.out.println();
+    }
+
+    public void branch(String name) {
+        index.load();
+        index.newBranch(name);
+        index.save();
+    }
+
+    public void removeBranch(String name) {
+        index.load();
+        index.removeBranch(name);
+        index.save();
+    }
+
+    public void reset(String commitId) throws IOException {
+        index.load();
+        //不存在对应的提交
+        if(!index.containsCommit(commitId)) {
+            message("No commit with that id exists.");
+            System.exit(0);
+        }
+        //存在未跟踪的文件被覆盖的情况
+        Commit target = index.getCommit(commitId);
+        for(String filename: Objects.requireNonNull(plainFilenamesIn(CWD))) {
+            File file = join(CWD,"%s".formatted(filename));
+            Blob blob = new Blob(file);
+            if(!index.getHead().tracked.containsKey(filename) && target.tracked.containsKey(filename)) {
+                message("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
+        }
+        //checkout
+        index.setHead(_sha1(target));
+        for(String filename: index.getHead().tracked.keySet()) {
+            checkout1(filename);
+        }
+        index.save();
+        //清楚暂存区
+        loadStaged();
+        staged.clear();
+        saveStaged();
+    }
+
+    public void merge(String branchName) throws IOException {
+        index.load();
+        index.merge(branchName);
+        index.save();
     }
 }

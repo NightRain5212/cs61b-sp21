@@ -51,16 +51,27 @@ public class Main {
                     repo.save();
                     break;
                 case "rm":
+                    String filename3 = args[1];
+                    repo.load();
+                    repo.remove(filename3);
+                    repo.save();
                     break;
                 case "log":
                     repo.load();
                     repo.log();
                     break;
                 case "global-log":
+                    repo.load();
+                    repo.global_log();
                     break;
                 case "find":
+                    String filename4 = args[1];
+                    repo.load();
+                    repo.find(filename4);
                     break;
                 case "status":
+                    repo.load();
+                    repo.status();
                     break;
                 case "checkout":
                     repo.load();
@@ -72,16 +83,33 @@ public class Main {
                         String filename2 = args[3];
                         repo.checkout2(commitId, filename2);
                     } else if (args.length == 2) {
-
+                        String branchname = args[1];
+                        repo.checkout_b(branchname);
                     }
+                    repo.save();
                     break;
                 case "branch":
+                    repo.load();
+                    String branchname1 = args[1];
+                    repo.branch(branchname1);
                     break;
                 case "rm-branch":
+                    repo.load();
+                    String branchName2 = args[1];
+                    repo.removeBranch(branchName2);
+                    repo.save();
                     break;
                 case "reset":
+                    repo.load();
+                    String commitId = args[1];
+                    repo.reset(commitId);
+                    repo.save();
                     break;
                 case "merge":
+                    repo.load();
+                    String branchName = args[1];
+                    repo.merge(branchName);
+                    repo.save();
                     break;
                 default:
                     //不存在此命令的情况
