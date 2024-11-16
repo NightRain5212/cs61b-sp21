@@ -120,8 +120,9 @@ public class Repository implements Serializable {
 
     public void commit(Commit c) throws IOException {
         staged = readObject(STAGED,staged.getClass());
+        loadRemoved();
         //没有暂存文件报错
-        if(staged.isEmpty()) {
+        if(staged.isEmpty() && removed.isEmpty()) {
             message("No changes added to the commit.");
             System.exit(0);
         }
@@ -166,8 +167,10 @@ public class Repository implements Serializable {
 
         //清空暂存区
         staged.clear();
+        removed.clear();
         //保存
         writeObject(STAGED,staged);
+        saveRemoved();
     }
 
     public void add(File file) {
@@ -213,6 +216,11 @@ public class Repository implements Serializable {
 
     public void checkout1(String filename) throws IOException {
         index.load();
+        //不存在文件报错
+        if(!index.getHead().tracked.containsKey(filename)) {
+            message("File does not exist in that commit.");
+            System.exit(0);
+        }
         //获取当前提交中的版本
         Blob blob = index.getHead().tracked.get(filename);
         //恢复文件（覆盖）
@@ -224,7 +232,17 @@ public class Repository implements Serializable {
 
     public void checkout2(String commitId,String filename) throws IOException {
         index.load();
+        //不存在提交报错
+        if(!index.containsCommit(commitId)) {
+            message("No commit with that id exists.");
+            System.exit(0);
+        }
         Commit chosen = index.getCommit(commitId);
+        //不存在文件报错
+        if(!chosen.tracked.containsKey(filename)) {
+            message("File does not exist in that commit.");
+            System.exit(0);
+        }
         Blob check = chosen.tracked.get(filename);
         File file = join(CWD,"%s".formatted(filename));
         file.createNewFile();

@@ -10,6 +10,7 @@ import static gitlet.Utils.*;
 
 public class Index implements Serializable {
     private HashMap<String,Commit> CommitSet;
+    private HashMap<Commit,String> IdSet;
     private HashMap<String,Node> NodeSet;
     private class Node implements Serializable {
         public Commit item;
@@ -39,6 +40,7 @@ public class Index implements Serializable {
         CommitSet = new HashMap<>();
         branches = new HashMap<>();
         NodeSet = new HashMap<>();
+        IdSet = new HashMap<>();
         Node master = new Node(null);
         branches.put("master",master);
         head = master;
@@ -50,6 +52,7 @@ public class Index implements Serializable {
     //添加提交
     public void add(Commit c) {
         CommitSet.put(_sha1(c),c);
+        IdSet.put(c,_sha1(c));
         Node newnode = new Node(c);
         newnode.parent.add(head);
         NodeSet.put(_sha1(c),newnode);
@@ -67,6 +70,9 @@ public class Index implements Serializable {
         Index saved = readObject(INDEX,Index.class);
         this.head = saved.head;
         this.branches = saved.branches;
+        this.IdSet = saved.IdSet;
+        this.CommitSet = saved.CommitSet;
+        this.NodeSet = saved.NodeSet;
     }
 
     //获取父提交

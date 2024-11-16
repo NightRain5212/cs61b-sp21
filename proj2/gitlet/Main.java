@@ -126,6 +126,11 @@ public class Main {
                     } else if (args.length == 4) {
                         String commitId = args[1];
                         String filename2 = args[3];
+                        //不合法参数
+                        if(!args[2].equals("--")) {
+                            message("Incorrect operands.");
+                            System.exit(0);
+                        }
                         repo.checkout2(commitId, filename2);
                     } else if (args.length == 2) {
                         String branchname = args[1];
