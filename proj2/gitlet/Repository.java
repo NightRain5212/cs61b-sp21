@@ -189,8 +189,6 @@ public class Repository implements Serializable {
 
         //更新删除区
         loadRemoved();
-        removed.remove(file.getName());
-        saveRemoved();
 
         //若该文件与当前提交的版本相同则不添加
         if(!index.getHead().tracked.isEmpty() && index.getHead().tracked.containsKey(file.getName()) && index.getHead().tracked.get(file.getName()).equals(blob)){
@@ -209,8 +207,16 @@ public class Repository implements Serializable {
             //未暂存直接添加文件
             staged.put(file.getName(),blob);
         }
+
+        //已删除则不暂存
+        if(removed.containsKey(file.getName())) {
+            staged.remove(file.getName());
+        }
+
+        removed.clear();
         //保存文件
         writeObject(STAGED,staged);
+        saveRemoved();
         index.save();
 
     }
@@ -305,6 +311,8 @@ public class Repository implements Serializable {
 
         //清除暂存区
         staged.clear();
+        removed.clear();
+        saveRemoved();
         //保存文件
         index.save();
         writeObject(STAGED,staged);
@@ -401,7 +409,7 @@ public class Repository implements Serializable {
         for(Commit c:index.getAllCommits()) {
             if(msg.equals(c.getMessage()) ) {
                 isExist = true;
-                System.out.println(_sha1(c));
+                System.out.println(index.getIdSet().get(c));
             }
         }
         //若不存在相应的文件报错
@@ -471,6 +479,11 @@ public class Repository implements Serializable {
         for(String filename: Objects.requireNonNull(plainFilenamesIn(CWD))) {
             File file = join(CWD,"%s".formatted(filename));
             Blob blob = new Blob(file);
+            //未跟踪文件
+            if(!index.getHead().tracked.containsKey(filename)) {
+                message("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.exit(0);
+            }
             //跳过冗余文件
             if(!index.getHead().tracked.containsKey(filename) && !target.tracked.containsKey(filename)) {
                 continue;
@@ -482,7 +495,7 @@ public class Repository implements Serializable {
             if(target.tracked.containsKey(filename) && !index.getHead().tracked.containsKey(filename)) {
                 continue;
             }
-            if(target.tracked.containsKey(filename)) {
+            if(target.tracked.containsKey(filename) ) {
                 message("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }

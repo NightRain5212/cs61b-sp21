@@ -250,14 +250,14 @@ public class Index implements Serializable {
         //分割点与给定分支相同
         if (commonParent != null && commonParent.equals(bHead)) {
             message("Given branch is an ancestor of the current branch.");
-            return;
+            System.exit(0);
         }
         //分割点与当前分支相同
         if (commonParent != null && commonParent.equals(head)) {
             repo.checkout_b(branchName);
             repo.save();
             message("Current branch fast-forwarded.");
-            return;
+            System.exit(0);
         }
 
         //检出暂存分割点不存在，且仅仅在给定分支存在的文件
@@ -325,14 +325,14 @@ public class Index implements Serializable {
                     System.exit(0);
                 }
                 //文件未发生变化
-                if(CwdAllFiles().get(filename).equals(getHead().tracked.get(filename))) {
+                if(CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
                     continue;
                 }
                 isConflict = true;
                 File file = join(CWD,"%s".formatted(filename));
                 Blob blob = head.item.tracked.get(filename);
                 String content;
-                content = "<<<<<<< HEAD\n" + blob.getContent() + "=======\n" + ">>>>>>>";
+                content = "<<<<<<< HEAD\n" + blob.getContent() + "\n=======\n" + "\n>>>>>>>";
                 file.createNewFile();
                 writeContents(file,content);
                 Blob newblob = new Blob(file);
@@ -352,7 +352,7 @@ public class Index implements Serializable {
                 Blob b2 = bHead.item.tracked.get(filename);
                 File file = join(CWD,"%s".formatted(filename));
                 file.createNewFile();
-                String content = "<<<<<<< HEAD\n" + b1.getContent() + "=======\n" + b2.getContent() + ">>>>>>>";
+                String content = "<<<<<<< HEAD\n" + b1.getContent() + "\n=======\n" + b2.getContent() + "\n>>>>>>>";
                 writeContents(file,content);
                 Blob newblob = new Blob(file);
                 repo.loadStaged();
@@ -368,14 +368,14 @@ public class Index implements Serializable {
                     continue;
                 }
                 //文件未发生变化
-                if(CwdAllFiles().get(filename).equals(bHead.item.tracked.get(filename))) {
+                if(CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
                     continue;
                 }
                 //一个文件的内容发生了变化而另一个文件被删除导致冲突
                 isConflict = true;
                 Blob b = bHead.item.tracked.get(filename);
                 File file = join(CWD,"%s".formatted(filename));
-                String content = "<<<<<<< HEAD\n" + "=======\n" + b.getContent() + ">>>>>>>";
+                String content = "<<<<<<< HEAD\n" + "\n=======\n" + b.getContent() + "\n>>>>>>>";
                 file.createNewFile();
                 writeContents(file,content);
                 Blob newblob = new Blob(file);
