@@ -29,6 +29,13 @@ public class Index implements Serializable {
             }
             return this.parent.get(0);
         }
+
+        public Node getsParent() {
+            if(this.parent.isEmpty()) {
+                return null;
+            }
+            return this.parent.get(1);
+        }
     }
 
     private Node head;
@@ -60,6 +67,12 @@ public class Index implements Serializable {
         head.son = newnode;
         head = newnode;
         branches.replace(curBranch,head);
+        save();
+    }
+
+    public void addParent(String branch) {
+        load();
+        head.parent.add(getBranchHead(branch));
         save();
     }
 
@@ -99,17 +112,29 @@ public class Index implements Serializable {
     }
 
     //获取父提交
-    public Commit getParent() {
-        if(head.parent.get(0) == null) {
+    public Commit getParent(int n) {
+        if(head.parent.get(n) == null) {
             return null;
         }
-        return head.parent.get(0).item;
+        return head.parent.get(n).item;
+    }
+
+    public Commit getParent(String id,int n) {
+        Node p = NodeSet.get(id);
+        return p.parent.get(n).item;
+    }
+
+    public String getParentId(String id,int n) {
+        Node p = NodeSet.get(id);
+        return IdSet.get(p.parent.get(n).item);
     }
 
     //获取当前提交
     public Commit getHead() {
         return head.item;
     }
+
+
     //获取对应id的提交
     public Commit getCommit(String id){
         return CommitSet.get(id);
@@ -183,6 +208,7 @@ public class Index implements Serializable {
     public void setHead(String commitId) {
         Node target = NodeSet.get(commitId);
         head = target;
+        branches.replace(curBranch,head);
     }
 
     public boolean containsCommit(String commitId) {
@@ -394,5 +420,13 @@ public class Index implements Serializable {
             }
         }
         return null;
+    }
+
+    public HashMap<String,Commit> getCommitSet() {
+        return CommitSet;
+    }
+
+    public HashMap<Commit,String> getIdSet() {
+        return IdSet;
     }
 }

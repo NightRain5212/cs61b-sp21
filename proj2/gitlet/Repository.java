@@ -233,6 +233,14 @@ public class Repository implements Serializable {
 
     public void checkout2(String commitId,String filename) throws IOException {
         index.load();
+        //缩写id的情况
+        if(commitId.length() == 8) {
+            for(String id:index.getCommitSet().keySet()) {
+                if(commitId.equals("%.8s".formatted(id))) {
+                    commitId = id;
+                }
+            }
+        }
         //不存在提交报错
         if(!index.containsCommit(commitId)) {
             message("No commit with that id exists.");
@@ -309,12 +317,13 @@ public class Repository implements Serializable {
         for(Commit i :logs) {
             System.out.println("===");
             Formatter formatter1 = new Formatter();
-            formatter1.format("commit %s",_sha1(i));
+            formatter1.format("commit %s",index.getIdSet().get(i));
             System.out.println(formatter1.toString());
             //处理合并提交
+            String id = index.getIdSet().get(i);
             if(i.parent.size() == 2) {
                 Formatter formatter2 = new Formatter();
-                formatter2.format("Merge: %.7s %.7s",_sha1(i.parent.get(0)),_sha1(i.parent.get(1)));
+                formatter2.format("Merge: %.7s %.7s",index.getParentId(id,0),index.getParentId(id,1));
                 System.out.println(formatter2.toString());
             }
             //设置日期格式
@@ -366,12 +375,13 @@ public class Repository implements Serializable {
             //打印日志
             System.out.println("===");
             Formatter formatter1 = new Formatter();
-            formatter1.format("commit %s",_sha1(c));
+            formatter1.format("commit %s",index.getIdSet().get(c));
             System.out.println(formatter1.toString());
             //处理合并提交
+            String id = index.getIdSet().get(c);
             if(c.parent.size() == 2) {
                 Formatter formatter2 = new Formatter();
-                formatter2.format("Merge: %.7s %.7s",_sha1(c.parent.get(0)),_sha1(c.parent.get(1)));
+                formatter2.format("Merge: %.7s %.7s",index.getParentId(id,0),index.getParentId(id,1));
                 System.out.println(formatter2.toString());
             }
             //设置日期格式
@@ -481,7 +491,7 @@ public class Repository implements Serializable {
 
 
         //checkout
-        index.setHead(_sha1(target));
+        index.setHead(commitId);
         index.save();
         for(String filename: index.getHead().tracked.keySet()) {
             checkout1(filename);
@@ -489,8 +499,11 @@ public class Repository implements Serializable {
         index.save();
         //清楚暂存区
         loadStaged();
+        loadRemoved();
         staged.clear();
+        removed.clear();
         saveStaged();
+        saveRemoved();
     }
 
     public void merge(String branchName) throws IOException {
@@ -500,6 +513,8 @@ public class Repository implements Serializable {
         Commit mergeCommit = new Commit("Merged %s into %s.".formatted(branchName,index.getCurrentBranch()),"n",date,index.getHead());
         mergeCommit.parent.add(index.getBranchHeadCommit(branchName));
         commit(mergeCommit);
+        index.addParent(branchName);
         index.save();
     }
+
 }
