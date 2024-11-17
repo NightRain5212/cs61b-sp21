@@ -269,6 +269,7 @@ public class Repository implements Serializable {
         index.load();
         staged = readObject(STAGED,staged.getClass());
         removed = readObject(REMOVED,removed.getClass());
+        index.update();
         if(!index.containsBranch(branchName)) {
             message("No such branch exists.");
             System.exit(0);
@@ -500,8 +501,6 @@ public class Repository implements Serializable {
                 System.exit(0);
             }
         }
-
-
 
         //checkout
         index.setHead(commitId);

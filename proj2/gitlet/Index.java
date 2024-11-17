@@ -31,7 +31,7 @@ public class Index implements Serializable {
         }
 
         public Node getsParent() {
-            if(this.parent.isEmpty()) {
+            if(this.parent.size() != 2) {
                 return null;
             }
             return this.parent.get(1);
@@ -282,7 +282,11 @@ public class Index implements Serializable {
             }
         }
 
-        for(String filename:getHead().tracked.keySet()) {
+        ArrayList<String> filenames = new ArrayList<>();
+        for(Blob b : getHead().tracked.values()) {
+            filenames.add(b.getName());
+        }
+        for(String filename: filenames) {
             //当前分支中未修改，给定分支不存在的文件被删除
             if(commonParent.item.tracked.containsKey(filename) && getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && !getBranchHead(branchName).item.tracked.containsKey(filename)) {
                 File file = join(CWD,"%s".formatted(filename));
@@ -366,24 +370,35 @@ public class Index implements Serializable {
 
     private Node getCommonParent(String name) {
         load();
-        Node curHead = head;
-        Node branchHead = getBranchHead(name);
-        ArrayList<Node> curLogs = new ArrayList<>();
+        return getCommonParent2(head,name,queue);
+    }
+    private final Queue<Node> queue = new ArrayDeque<>();
+    private Node getCommonParent2(Node node,String name,Queue<Node> q) {
+        load();
         ArrayList<Node> bLogs = new ArrayList<>();
-        while (curHead != null) {
-            curLogs.add(curHead);
-            curHead = curHead.getParent();
+        Node bHead = getBranchHead(name);
+        while (bHead != null) {
+            bLogs.add(bHead);
+            bHead = bHead.getParent();
         }
-        while (branchHead != null) {
-            bLogs.add(branchHead);
-            branchHead = branchHead.getParent();
+        if(node == null) {
+            return null;
         }
-        for(Node n:curLogs) {
-            if(bLogs.contains(n)) {
+        for(Node n:bLogs) {
+            if(n.item == null) {continue;}
+            if(n.item.getMessage().equals(node.item.getMessage())) {
+                q.clear();
                 return n;
             }
         }
-        return null;
+        if(node.getParent() != null) {
+            queue.add(node.getParent());
+        }
+        if(node.parent.size() == 2) {
+            queue.add(node.getsParent());
+        }
+        return getCommonParent2(q.poll(),name,q);
+
     }
 
     public HashMap<String,Commit> getCommitSet() {
