@@ -147,6 +147,7 @@ public class Main {
                     repo.load();
                     String branchname1 = args[1];
                     repo.branch(branchname1);
+                    repo.save();
                     break;
                 case "rm-branch":
                     //未初始化报错

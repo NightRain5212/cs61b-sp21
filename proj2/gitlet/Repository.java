@@ -454,12 +454,20 @@ public class Repository implements Serializable {
             message("No commit with that id exists.");
             System.exit(0);
         }
-        //存在未跟踪的文件被覆盖的情况
+        //存在未跟踪的文件被覆盖的情况(删除的情况未考虑)
         Commit target = index.getCommit(commitId);
         for(String filename: Objects.requireNonNull(plainFilenamesIn(CWD))) {
             File file = join(CWD,"%s".formatted(filename));
             Blob blob = new Blob(file);
+            //跳过冗余文件
+            if(!index.getHead().tracked.containsKey(filename) && !target.tracked.containsKey(filename)) {
+                continue;
+            }
             if(index.getHead().tracked.containsKey(filename)) {
+                continue;
+            }
+            //删除的情况
+            if(target.tracked.containsKey(filename) && !index.getHead().tracked.containsKey(filename)) {
                 continue;
             }
             if(target.tracked.containsKey(filename)) {
@@ -467,8 +475,12 @@ public class Repository implements Serializable {
                 System.exit(0);
             }
         }
+
+
+
         //checkout
         index.setHead(_sha1(target));
+        index.save();
         for(String filename: index.getHead().tracked.keySet()) {
             checkout1(filename);
         }

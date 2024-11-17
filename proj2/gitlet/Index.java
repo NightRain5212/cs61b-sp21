@@ -126,7 +126,7 @@ public class Index implements Serializable {
 
     public void newBranch(String name) {
         //已经存在名称报错
-        if(branches.containsValue(name)) {
+        if(branches.containsKey(name)) {
             message("A branch with that name already exists.");
             System.exit(0);
         }
@@ -214,14 +214,18 @@ public class Index implements Serializable {
         for(String filename:bHead.item.tracked.keySet()) {
             if (commonParent != null) {
                 if(!commonParent.item.tracked.containsKey(filename) && !CwdAllFiles().containsKey(filename)) {
-                    //当前提交中的未跟踪文件将被合并覆盖
-                    if(!head.item.tracked.containsKey(filename)) {
+                    //当前提交中的未跟踪文件将被合并覆盖(未考虑删除的情况)
+                    if(!bHead.item.tracked.containsKey(filename) && !head.item.tracked.containsKey(filename)) {
                         message("There is an untracked file in the way; delete it, or add and commit it first.");
                         System.exit(0);
                     }
-                    repo.checkout1(filename);
+                    //恢复提交文件
+                    File file = join(CWD,"%s".formatted(filename));
+                    Blob blob = getBranchHead(branchName).item.tracked.get(filename);
+                    file.createNewFile();
+                    writeContents(file,blob.getContent());
                     repo.loadStaged();
-                    repo.staged.put(filename,bHead.item.tracked.get(filename));
+                    repo.staged.put(filename,blob);
                     repo.saveStaged();
                 }
             }
@@ -270,6 +274,10 @@ public class Index implements Serializable {
                     message("There is an untracked file in the way; delete it, or add and commit it first.");
                     System.exit(0);
                 }
+                //文件未发生变化
+                if(CwdAllFiles().get(filename).equals(getHead().tracked.get(filename))) {
+                    continue;
+                }
                 isConflict = true;
                 File file = join(CWD,"%s".formatted(filename));
                 Blob blob = head.item.tracked.get(filename);
@@ -283,7 +291,7 @@ public class Index implements Serializable {
                 repo.saveStaged();
             }
             //2.都存在且修改方式不同
-            if(!bHead.item.tracked.get(filename).equals(CwdAllFiles().get(filename))) {
+            if(bHead.item.tracked.containsKey(filename) && !bHead.item.tracked.get(filename).equals(CwdAllFiles().get(filename))) {
                 //当前提交中的未跟踪文件将被合并覆盖
                 if(!head.item.tracked.containsKey(filename)) {
                     message("There is an untracked file in the way; delete it, or add and commit it first.");
@@ -309,6 +317,11 @@ public class Index implements Serializable {
                 if (commonParent != null && commonParent.item.tracked.containsKey(filename) && commonParent.item.tracked.get(filename).equals(bHead.item.tracked.get(filename))) {
                     continue;
                 }
+                //文件未发生变化
+                if(CwdAllFiles().get(filename).equals(bHead.item.tracked.get(filename))) {
+                    continue;
+                }
+                //一个文件的内容发生了变化而另一个文件被删除导致冲突
                 isConflict = true;
                 Blob b = bHead.item.tracked.get(filename);
                 File file = join(CWD,"%s".formatted(filename));
