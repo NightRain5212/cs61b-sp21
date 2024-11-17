@@ -480,7 +480,7 @@ public class Repository implements Serializable {
             File file = join(CWD,"%s".formatted(filename));
             Blob blob = new Blob(file);
             //未跟踪文件
-            if(!index.getHead().tracked.containsKey(filename)) {
+            if(!index.getHead().tracked.containsKey(filename) && target.tracked.containsKey(filename)) {
                 message("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
