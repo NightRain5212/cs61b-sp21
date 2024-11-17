@@ -51,6 +51,7 @@ public class Index implements Serializable {
 
     //添加提交
     public void add(Commit c) {
+        load();
         CommitSet.put(_sha1(c),c);
         IdSet.put(c,_sha1(c));
         Node newnode = new Node(c);
@@ -59,8 +60,30 @@ public class Index implements Serializable {
         head.son = newnode;
         head = newnode;
         branches.replace(curBranch,head);
+        save();
     }
 
+    //维护节点
+    public void update() {
+        load();
+        for(Node n:NodeSet.values()) {
+            if(n.item == null) {
+                continue;
+            }
+            File savedDir = join(SAVED_DIR,"%s".formatted(IdSet.get(n.item)));
+            //考虑init commit的情况
+            if(plainFilenamesIn(savedDir) == null) {
+                continue;
+            }
+            n.item.tracked.clear();
+            for (String filename : (Objects.requireNonNull(plainFilenamesIn(savedDir)))) {
+                File updated = join(savedDir,"%s".formatted(filename));
+                Blob blob = new Blob(updated);
+                n.item.tracked.put(filename,blob);
+            }
+        }
+        save();
+    }
     //保存到文件
     public void save() {
         writeObject(INDEX,this);
@@ -177,10 +200,11 @@ public class Index implements Serializable {
     }
 
     public void merge(String branchName) throws IOException {
-        Node commonParent = getCommonParent(branchName);
-        Node bHead = getBranchHead(branchName);
         Repository repo = new Repository();
         repo.load();
+        update();
+        Node commonParent = getCommonParent(branchName);
+        Node bHead = getBranchHead(branchName);
         //有暂存文件则报错
         if(!repo.staged.isEmpty()) {
             message("You have uncommitted changes.");
@@ -214,7 +238,7 @@ public class Index implements Serializable {
         for(String filename:bHead.item.tracked.keySet()) {
             if (commonParent != null) {
                 if(!commonParent.item.tracked.containsKey(filename) && !CwdAllFiles().containsKey(filename)) {
-                    //当前提交中的未跟踪文件将被合并覆盖(未考虑删除的情况)
+                    //当前提交中的未跟踪文件将被合并覆盖
                     if(!bHead.item.tracked.containsKey(filename) && !head.item.tracked.containsKey(filename)) {
                         message("There is an untracked file in the way; delete it, or add and commit it first.");
                         System.exit(0);
@@ -231,39 +255,39 @@ public class Index implements Serializable {
             }
         }
         //任何在分割点存在的文件，在当前分支中未修改且在给定分支中不存在的文件应该被删除（并且不被跟踪）
-        if (commonParent != null) {
-            for (String filename:commonParent.item.tracked.keySet()) {
-                if(!bHead.item.tracked.containsKey(filename) && CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
-                    //当前提交中的未跟踪文件将被合并删除
-                    if(!head.item.tracked.containsKey(filename)) {
-                        message("There is an untracked file in the way; delete it, or add and commit it first.");
-                        System.exit(0);
-                    }
-                    File file = join(CWD,"%s".formatted(filename));
-                    Blob blob = new Blob(file);
-                    head.item.tracked.remove(filename);
-                    file.delete();
-                    repo.loadRemoved();
-                    repo.removed.put(filename,blob);
-                    repo.saveRemoved();
+        for (String filename:CwdAllFiles().keySet()) {
+            if(commonParent != null && commonParent.item.tracked.containsKey(filename) && !bHead.item.tracked.containsKey(filename) && CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
+                //当前提交中的未跟踪文件将被合并删除
+                if(!head.item.tracked.containsKey(filename)) {
+                    message("There is an untracked file in the way; delete it, or add and commit it first.");
+                    System.exit(0);
                 }
-                //任何自分叉点以来在给定分支中已修改但自分叉点以来在当前分支中未修改的文件应更改为给定分支中的版本,暂存
-                if(!bHead.item.tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
-                    //当前提交中的未跟踪文件将被合并覆盖
-                    if(!head.item.tracked.containsKey(filename)) {
-                        message("There is an untracked file in the way; delete it, or add and commit it first.");
-                        System.exit(0);
-                    }
-                    Blob b = bHead.item.tracked.get(filename);
-                    File file = join(CWD,"%s".formatted(filename));
-                    file.createNewFile();
-                    writeContents(file,b.getContent());
-                    repo.loadStaged();
-                    repo.staged.put(filename,b);
-                    repo.saveStaged();
+                File file = join(CWD,"%s".formatted(filename));
+                Blob blob = new Blob(file);
+                head.item.tracked.remove(filename);
+                file.delete();
+                repo.loadRemoved();
+                repo.removed.put(filename,blob);
+                repo.saveRemoved();
+            }
+            //任何自分叉点以来在给定分支中已修改但自分叉点以来在当前分支中未修改的文件应更改为给定分支中的版本,暂存
+            if(bHead.item.tracked.containsKey(filename) && !bHead.item.tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
+                //当前提交中的未跟踪文件将被合并覆盖
+                if(!head.item.tracked.containsKey(filename)) {
+                    message("There is an untracked file in the way; delete it, or add and commit it first.");
+                    System.exit(0);
                 }
+                Blob b = bHead.item.tracked.get(filename);
+                File file = join(CWD,"%s".formatted(filename));
+                file.createNewFile();
+                writeContents(file,b.getContent());
+                repo.loadStaged();
+                repo.staged.put(filename,b);
+                repo.saveStaged();
             }
         }
+
+
         boolean isConflict = false;
         //合并冲突
         for(String filename:CwdAllFiles().keySet()) {
@@ -334,11 +358,7 @@ public class Index implements Serializable {
                 repo.saveStaged();
             }
         }
-        Date date = new Date();
-        Commit mergeCommit = new Commit("Merged %s into %s.".formatted(branchName,curBranch),"n",date,head.item);
-        mergeCommit.parent.add(bHead.item);
-        repo.load();
-        repo.commit(mergeCommit);
+        save();
         repo.save();
         if(isConflict) {
             message("Encountered a merge conflict.");
@@ -355,6 +375,7 @@ public class Index implements Serializable {
     }
 
     private Node getCommonParent(String name) {
+        load();
         Node curHead = head;
         Node branchHead = getBranchHead(name);
         ArrayList<Node> curLogs = new ArrayList<>();

@@ -18,8 +18,10 @@ public class Commit implements Serializable {
         parent.add(p);
         tracked = new HashMap<>();
         if(parent.get(0) != null) {
-            //默认追踪父提交追踪的文件
-            tracked = parent.get(0).tracked;
+            //默认追踪父提交追踪的文件(注意是值传递，不是引用传递)
+            for(String filename:parent.get(0).tracked.keySet()) {
+                tracked.put(filename,parent.get(0).tracked.get(filename));
+            }
         }
     }
 

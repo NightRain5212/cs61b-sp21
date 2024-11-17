@@ -119,6 +119,7 @@ public class Repository implements Serializable {
     }
 
     public void commit(Commit c) throws IOException {
+        index.load();
         staged = readObject(STAGED,staged.getClass());
         loadRemoved();
         //没有暂存文件报错
@@ -144,7 +145,6 @@ public class Repository implements Serializable {
             }
         }
 
-        index.load();
         //提交到树中，更新头指针
         index.add(c);
         index.setHead(_sha1(c));
@@ -159,10 +159,11 @@ public class Repository implements Serializable {
         commitfile.createNewFile();
         writeObject(commitfile,c);
 
+        //保存信息
         for(String filename:c.tracked.keySet()) {
             File file = join(SAVED_DIR,"%s".formatted(_sha1(c)),"%s".formatted(filename));
             file.createNewFile();
-            writeObject(file,c.tracked.get(filename));
+            writeContents(file,c.tracked.get(filename).getContent());
         }
 
         //清空暂存区
@@ -350,6 +351,7 @@ public class Repository implements Serializable {
         staged.remove(filename);
 
         //保存文件
+        index.save();
         writeObject(STAGED,staged);
         writeObject(REMOVED,removed);
 
@@ -494,6 +496,10 @@ public class Repository implements Serializable {
     public void merge(String branchName) throws IOException {
         index.load();
         index.merge(branchName);
+        Date date = new Date();
+        Commit mergeCommit = new Commit("Merged %s into %s.".formatted(branchName,index.getCurrentBranch()),"n",date,index.getHead());
+        mergeCommit.parent.add(index.getBranchHeadCommit(branchName));
+        commit(mergeCommit);
         index.save();
     }
 }
