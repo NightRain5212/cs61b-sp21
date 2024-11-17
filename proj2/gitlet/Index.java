@@ -231,6 +231,7 @@ public class Index implements Serializable {
         update();
         Node commonParent = getCommonParent(branchName);
         Node bHead = getBranchHead(branchName);
+        boolean isConflict = false;
         //有暂存文件则报错
         if(!repo.staged.isEmpty()) {
             message("You have uncommitted changes.");
@@ -260,130 +261,93 @@ public class Index implements Serializable {
             System.exit(0);
         }
 
-        //检出暂存分割点不存在，且仅仅在给定分支存在的文件
+        //仅在给定分支存在的文件检出暂存
         for(String filename:bHead.item.tracked.keySet()) {
-            if (commonParent != null) {
-                if(!commonParent.item.tracked.containsKey(filename) && !CwdAllFiles().containsKey(filename)) {
-                    //当前提交中的未跟踪文件将被合并覆盖
-                    if(!bHead.item.tracked.containsKey(filename) && !head.item.tracked.containsKey(filename)) {
-                        message("There is an untracked file in the way; delete it, or add and commit it first.");
-                        System.exit(0);
-                    }
-                    //恢复提交文件
-                    File file = join(CWD,"%s".formatted(filename));
-                    Blob blob = getBranchHead(branchName).item.tracked.get(filename);
-                    file.createNewFile();
-                    writeContents(file,blob.getContent());
-                    repo.loadStaged();
-                    repo.staged.put(filename,blob);
-                    repo.saveStaged();
-                }
-            }
-        }
-        //任何在分割点存在的文件，在当前分支中未修改且在给定分支中不存在的文件应该被删除（并且不被跟踪）
-        for (String filename:CwdAllFiles().keySet()) {
-            if(commonParent != null && commonParent.item.tracked.containsKey(filename) && !bHead.item.tracked.containsKey(filename) && CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
-                //当前提交中的未跟踪文件将被合并删除
-                if(!head.item.tracked.containsKey(filename)) {
+
+            if(!Objects.requireNonNull(commonParent).item.tracked.containsKey(filename) && !getHead().tracked.containsKey(filename)) {
+                //覆盖未追踪文件报错
+                if(CwdAllFiles().containsKey(filename) ) {
                     message("There is an untracked file in the way; delete it, or add and commit it first.");
                     System.exit(0);
                 }
                 File file = join(CWD,"%s".formatted(filename));
-                Blob blob = new Blob(file);
-                head.item.tracked.remove(filename);
-                file.delete();
-                repo.loadRemoved();
-                repo.removed.put(filename,blob);
-                repo.saveRemoved();
-            }
-            //任何自分叉点以来在给定分支中已修改但自分叉点以来在当前分支中未修改的文件应更改为给定分支中的版本,暂存
-            if(bHead.item.tracked.containsKey(filename) && !bHead.item.tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
-                //当前提交中的未跟踪文件将被合并覆盖
-                if(!head.item.tracked.containsKey(filename)) {
-                    message("There is an untracked file in the way; delete it, or add and commit it first.");
-                    System.exit(0);
-                }
-                Blob b = bHead.item.tracked.get(filename);
-                File file = join(CWD,"%s".formatted(filename));
+                Blob b = getBranchHead(branchName).item.tracked.get(filename);
                 file.createNewFile();
                 writeContents(file,b.getContent());
-                repo.loadStaged();
                 repo.staged.put(filename,b);
-                repo.saveStaged();
+            }
+            //给定分支不修改，当前分支不存在，不管
+            if(commonParent.item.tracked.containsKey(filename) && bHead.item.tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && !getHead().tracked.containsKey(filename)) {
+                continue;
             }
         }
 
+        for(String filename:getHead().tracked.keySet()) {
+            //当前分支中未修改，给定分支不存在的文件被删除
+            if(commonParent.item.tracked.containsKey(filename) && getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && !getBranchHead(branchName).item.tracked.containsKey(filename)) {
+                File file = join(CWD,"%s".formatted(filename));
+                Blob b = new Blob(file);
+                head.item.tracked.remove(filename);
+                file.delete();
+            }
+            //当前分支未修改，给定分支修改的文件检出暂存
+            if(getBranchHead(branchName).item.tracked.containsKey(filename) && commonParent.item.tracked.containsKey(filename) && getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && !getHead().tracked.get(filename).equals(getBranchHead(branchName).item.tracked.get(filename))) {
+                File file = join(CWD,"%s".formatted(filename));
+                Blob b = getBranchHead(branchName).item.tracked.get(filename);
+                file.createNewFile();
+                writeContents(file,b.getContent());
+                repo.staged.put(filename,b);
+            }
+            //当前分支中修改，给定分支不修改的情况不管
+            if (commonParent.item.tracked.containsKey(filename) && getBranchHead(branchName).item.tracked.containsKey(filename) && !getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && getBranchHead(branchName).item.tracked.get(filename).equals(commonParent.item.tracked.get(filename))) {
+                continue;
+            }
+            //仅存在当前分支的文件保持不变
+            if(!commonParent.item.tracked.containsKey(filename) && !getBranchHead(branchName).item.tracked.containsKey(filename)) {
+                continue;
+            }
+        }
 
-        boolean isConflict = false;
         //合并冲突
-        for(String filename:CwdAllFiles().keySet()) {
-            //1.如果在给定分支中删除
-            if(!bHead.item.tracked.containsKey(filename)) {
-                //当前提交中的未跟踪文件将被合并覆盖
-                if(!head.item.tracked.containsKey(filename)) {
-                    message("There is an untracked file in the way; delete it, or add and commit it first.");
-                    System.exit(0);
-                }
-                //文件未发生变化
-                if(CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
-                    continue;
-                }
+        for(String filename: Objects.requireNonNull(commonParent).item.tracked.keySet()) {
+            //1.给定分支修改，当前分支删除
+            if(getBranchHead(branchName).item.tracked.containsKey(filename) && !getHead().tracked.containsKey(filename) && !getBranchHead(branchName).item.tracked.get(filename).equals(commonParent.item.tracked.get(filename))) {
                 isConflict = true;
                 File file = join(CWD,"%s".formatted(filename));
-                Blob blob = head.item.tracked.get(filename);
-                String content;
-                content = "<<<<<<< HEAD\n" + blob.getContent() + "\n=======\n" + "\n>>>>>>>";
-                file.createNewFile();
-                writeContents(file,content);
-                Blob newblob = new Blob(file);
-                repo.loadStaged();
-                repo.staged.put(filename,newblob);
-                repo.saveStaged();
-            }
-            //2.都存在且修改方式不同
-            if(bHead.item.tracked.containsKey(filename) && !bHead.item.tracked.get(filename).equals(CwdAllFiles().get(filename))) {
-                //当前提交中的未跟踪文件将被合并覆盖
-                if(!head.item.tracked.containsKey(filename)) {
-                    message("There is an untracked file in the way; delete it, or add and commit it first.");
-                    System.exit(0);
-                }
-                isConflict = true;
-                Blob b1 = head.item.tracked.get(filename);
-                Blob b2 = bHead.item.tracked.get(filename);
-                File file = join(CWD,"%s".formatted(filename));
-                file.createNewFile();
-                String content = "<<<<<<< HEAD\n" + b1.getContent() + "\n=======\n" + b2.getContent() + "\n>>>>>>>";
-                writeContents(file,content);
-                Blob newblob = new Blob(file);
-                repo.loadStaged();
-                repo.staged.put(filename,newblob);
-                repo.saveStaged();
-            }
-        }
-        //3.在当前分支删除而给定分支存在
-        for(String filename:bHead.item.tracked.keySet()) {
-            if(!CwdAllFiles().containsKey(filename)) {
-                //任何在分割点存在的文件，在给定分支中未修改，并且在当前分支中缺失的文件应保持缺失。
-                if (commonParent != null && commonParent.item.tracked.containsKey(filename) && commonParent.item.tracked.get(filename).equals(bHead.item.tracked.get(filename))) {
-                    continue;
-                }
-                //文件未发生变化
-                if(CwdAllFiles().get(filename).equals(commonParent.item.tracked.get(filename))) {
-                    continue;
-                }
-                //一个文件的内容发生了变化而另一个文件被删除导致冲突
-                isConflict = true;
-                Blob b = bHead.item.tracked.get(filename);
-                File file = join(CWD,"%s".formatted(filename));
+                Blob b = getBranchHead(branchName).item.tracked.get(filename);
                 String content = "<<<<<<< HEAD\n" + "\n=======\n" + b.getContent() + "\n>>>>>>>";
                 file.createNewFile();
                 writeContents(file,content);
-                Blob newblob = new Blob(file);
-                repo.loadStaged();
-                repo.staged.put(filename,newblob);
-                repo.saveStaged();
+                Blob newb = new Blob(file);
+                repo.staged.put(filename,newb);
             }
+            //2.当前分支修改，给定分支删除
+            if(getHead().tracked.containsKey(filename) && !getBranchHead(branchName).item.tracked.containsKey(filename) && !getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename))) {
+                isConflict = true;
+                File file = join(CWD,"%s".formatted(filename));
+                Blob b = getHead().tracked.get(filename);
+                String content = "<<<<<<< HEAD\n" + b.getContent() + "\n=======\n" + "\n>>>>>>>";
+                file.createNewFile();
+                writeContents(file,content);
+                Blob newb = new Blob(file);
+                repo.staged.put(filename,newb);
+            }
+            //3.当前与给定分支均修改，修改方式不同。
+            if(getHead().tracked.containsKey(filename) && getBranchHead(branchName).item.tracked.containsKey(filename) && !getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && !getBranchHead(branchName).item.tracked.get(filename).equals(commonParent.item.tracked.get(filename))) {
+               if(!getHead().tracked.get(filename).equals(getBranchHead(branchName).item.tracked.get(filename))) {
+                   isConflict = true;
+                   File file = join(CWD,"%s".formatted(filename));
+                   Blob b1 = getHead().tracked.get(filename);
+                   Blob b2 = getBranchHead(branchName).item.tracked.get(filename);
+                   String content = "<<<<<<< HEAD\n" + b1.getContent() + "\n=======\n" + b2.getContent() + "\n>>>>>>>";
+                   file.createNewFile();
+                   writeContents(file,content);
+                   Blob newb = new Blob(file);
+                   repo.staged.put(filename,newb);
+               }
+           }
         }
+        repo.saveStaged();
         save();
         repo.save();
         if(isConflict) {
