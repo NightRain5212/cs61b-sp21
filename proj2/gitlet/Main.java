@@ -59,7 +59,7 @@ public class Main {
                         System.exit(0);
                     }
                     Date date = new Date();
-                    Commit p = repo.index.getHead();
+                    Commit p = repo.getIndex().getHead();
                     Commit newCommit = new Commit(msg, "n", date, p);
                     repo.commit(newCommit);
                     repo.save();
@@ -186,13 +186,11 @@ public class Main {
                     String dir = args[2];
                     dir.replace("/",File.separator);
                     repo.load();
-                    repo.addRemote(name, dir);
                     repo.save();
                     break;
                 case "rm-remote":
                     String name1 = args[1];
                     repo.load();
-                    repo.removeRemote(name1);
                     repo.save();
                     break;
                 case "push":

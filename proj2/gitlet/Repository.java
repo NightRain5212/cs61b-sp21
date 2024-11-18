@@ -58,6 +58,9 @@ public class Repository implements Serializable {
     public HashMap<String, Blob> getBetweenStagedAndRemoved() {
         return betweenStagedAndRemoved;
     }
+    public Index getIndex () {
+        return index;
+    }
     /*tree：
      * - .gitlet/
      *   -commits
@@ -307,8 +310,8 @@ public class Repository implements Serializable {
             }
         }
         if (isuntracked) {
-            message("There is an untracked file in the way; delete it" +
-                    ", or add and commit it first.");
+            message("There is an untracked file in the way; delete it"
+                    + ", or add and commit it first.");
             System.exit(0);
         }
         //切换分支
@@ -353,15 +356,15 @@ public class Repository implements Serializable {
             String id = index.getIdSet().get(i);
             if (i.getParent().size() == 2) {
                 Formatter formatter2 = new Formatter();
-                formatter2.format("Merge: %.7s %.7s", index.getParentId(id, 0)
-                        , index.getParentId(id, 1));
+                formatter2.format("Merge: %.7s %.7s",
+                        index.getParentId(id, 0), index.getParentId(id, 1));
                 System.out.println(formatter2.toString());
             }
             //设置日期格式
             Instant instant = i.getDate().toInstant();
             ZonedDateTime zdt = instant.atZone(ZoneId.of("Asia/Shanghai"));
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z"
-                    , Locale.ENGLISH);
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(
+                    "EEE MMM dd HH:mm:ss yyyy Z", Locale.ENGLISH);
             String dateMsg = zdt.format(dtf);
             System.out.println("Date: " + dateMsg);
             System.out.println(i.getMessage());
@@ -413,15 +416,15 @@ public class Repository implements Serializable {
             String id = index.getIdSet().get(c);
             if (c.getParent().size() == 2) {
                 Formatter formatter2 = new Formatter();
-                formatter2.format("Merge: %.7s %.7s", index.getParentId(id, 0)
-                        , index.getParentId(id, 1));
+                formatter2.format("Merge: %.7s %.7s",
+                        index.getParentId(id, 0), index.getParentId(id, 1));
                 System.out.println(formatter2.toString());
             }
             //设置日期格式
             Instant instant = c.getDate().toInstant();
             ZonedDateTime zdt = instant.atZone(ZoneId.of("Asia/Shanghai"));
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z"
-                    , Locale.ENGLISH);
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(
+                    "EEE MMM dd HH:mm:ss yyyy Z", Locale.ENGLISH);
             String dateMsg = zdt.format(dtf);
             System.out.println("Date: " + dateMsg);
             System.out.println(c.getMessage());
@@ -508,8 +511,8 @@ public class Repository implements Serializable {
         System.out.println("=== Untracked Files ===");
         for (String filename : index.cwdAllFiles().keySet()) {
             //既没有暂存，也没有提交
-            if (!staged.containsKey(filename) &&
-                    !index.getHead().getTracked().containsKey(filename)
+            if (!staged.containsKey(filename)
+                    && !index.getHead().getTracked().containsKey(filename)
                     && !betweenStagedAndRemoved.containsKey(filename)) {
                 System.out.println(filename);
             }
@@ -549,8 +552,8 @@ public class Repository implements Serializable {
             //未跟踪文件
             if (!index.getHead().getTracked().containsKey(filename)
                     && target.getTracked().containsKey(filename)) {
-                message("There is an untracked file in the way; delete it" +
-                        ", or add and commit it first.");
+                message("There is an untracked file in the way; delete it"
+                        + ", or add and commit it first.");
                 System.exit(0);
             }
             //跳过冗余文件
@@ -567,8 +570,8 @@ public class Repository implements Serializable {
                 continue;
             }
             if (target.getTracked().containsKey(filename)) {
-                message("There is an untracked file in the way; delete it" +
-                        ", or add and commit it first.");
+                message("There is an untracked file in the way; delete it"
+                        + ", or add and commit it first.");
                 System.exit(0);
             }
         }

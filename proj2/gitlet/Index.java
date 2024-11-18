@@ -243,8 +243,8 @@ public class Index implements Serializable {
                     && !getHead().getTracked().containsKey(filename)) {
                 //覆盖未追踪文件报错
                 if (cwdAllFiles().containsKey(filename)) {
-                    message("There is an untracked file in the way; delete it" +
-                            ", or add and commit it first.");
+                    message("There is an untracked file in the way; delete it"
+                            + ", or add and commit it first.");
                     System.exit(0);
                 }
                 File file = join(CWD, "%s".formatted(filename));
