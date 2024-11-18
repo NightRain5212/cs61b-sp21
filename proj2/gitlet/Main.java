@@ -91,7 +91,7 @@ public class Main {
                         System.exit(0);
                     }
                     repo.load();
-                    repo.global_log();
+                    repo.globalLog();
                     break;
                 case "find":
                     //未初始化报错
@@ -133,7 +133,7 @@ public class Main {
                         repo.checkout2(commitId, filename2);
                     } else if (args.length == 2) {
                         String branchname = args[1];
-                        repo.checkout_b(branchname);
+                        repo.checkoutB(branchname);
                     }
                     repo.save();
                     break;
@@ -180,6 +180,26 @@ public class Main {
                     String branchName = args[1];
                     repo.merge(branchName);
                     repo.save();
+                    break;
+                case "add-remote":
+                    String name = args[1];
+                    String dir = args[2];
+                    dir.replace("/",File.separator);
+                    repo.load();
+                    repo.addRemote(name, dir);
+                    repo.save();
+                    break;
+                case "rm-remote":
+                    String name1 = args[1];
+                    repo.load();
+                    repo.removeRemote(name1);
+                    repo.save();
+                    break;
+                case "push":
+                    break;
+                case "fetch":
+                    break;
+                case "pull":
                     break;
                 default:
                     //不存在此命令的情况

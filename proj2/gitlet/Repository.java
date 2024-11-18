@@ -1,8 +1,5 @@
 package gitlet;
 
-import jdk.jfr.FlightRecorder;
-
-import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -44,13 +41,18 @@ public class Repository implements Serializable {
     public static final File SAVED_DIR = join(CWD, ".gitlet", "saved");
     public static final File REMOVED = join(CWD, ".gitlet", "removed");
     public static final File BETWEEN = join(CWD, ".gitlet", "between");
+    public static final File REMOTE = join(CWD, ".gitlet", "remote");
+    public static final File REMOTEBRANCH = join(CWD,".gitlet","remotebranch");
 
     //管理提交的目录
-    public Index index;
+    private Index index;
     //暂存区
-    public HashMap<String, Blob> staged;
-    public HashMap<String, Blob> removed;
-    public HashMap<String, Blob> betweenStagedAndRemoved;
+    private HashMap<String, Blob> staged;
+    private HashMap<String, Blob> removed;
+    private HashMap<String, Blob> betweenStagedAndRemoved;
+
+    //远程仓库
+    private HashMap<String,String> remoteRepo;
 
     /*tree：
      * - .gitlet/
@@ -66,6 +68,7 @@ public class Repository implements Serializable {
      *   -staged
      *   -repo
      *   -removed
+     *   -remote
      * - working trees
      *
      *
@@ -80,22 +83,27 @@ public class Repository implements Serializable {
         GITLET_DIR.mkdir();
         COMMIT_DIR.mkdir();
         SAVED_DIR.mkdir();
+        //储存远程仓库的信息
+        REMOTEBRANCH.mkdir();
         REPO.createNewFile();
         INDEX.createNewFile();
         STAGED.createNewFile();
         REMOVED.createNewFile();
         BETWEEN.createNewFile();
+        REMOTE.createNewFile();
         Date date = new Date(0L);
         Commit init = new Commit("initial commit", "n", date, null);
         staged = new HashMap<>();
         index = new Index();
         removed = new HashMap<>();
+        remoteRepo = new HashMap<>();
         betweenStagedAndRemoved = new HashMap<>();
         index.add(init);
         index.save();
         writeObject(STAGED, staged);
         writeObject(REMOVED, removed);
         writeObject(BETWEEN, betweenStagedAndRemoved);
+        writeObject(REMOTE,remoteRepo);
         this.save();
     }
 
@@ -109,6 +117,7 @@ public class Repository implements Serializable {
         staged = saved.staged;
         removed = saved.removed;
         betweenStagedAndRemoved = saved.betweenStagedAndRemoved;
+        remoteRepo = saved.remoteRepo;
     }
 
     public void loadStaged() {
@@ -145,7 +154,8 @@ public class Repository implements Serializable {
 
         for (String filename : staged.keySet()) {
             //同名文件(被修改的)更新追踪
-            if (c.getTracked().containsKey(filename) && !staged.get(filename).equal(c.getTracked().get(filename))) {
+            if (c.getTracked().containsKey(filename)
+                    && !staged.get(filename).equal(c.getTracked().get(filename))) {
                 c.getTracked().replace(filename, staged.get(filename));
             }
             //追踪新文件
@@ -156,21 +166,21 @@ public class Repository implements Serializable {
 
         //提交到树中，更新头指针
         index.add(c);
-        index.setHead(_sha1(c));
+        index.setHead(msha1(c));
         index.save();
 
         //保存追踪文件到仓库。
-        File trackedDir = join(SAVED_DIR, "%s".formatted(_sha1(c)));
+        File trackedDir = join(SAVED_DIR, "%s".formatted(msha1(c)));
         trackedDir.mkdir();
 
         //保存提交信息到文件
-        File commitfile = join(COMMIT_DIR, "%s".formatted(_sha1(c)));
+        File commitfile = join(COMMIT_DIR, "%s".formatted(msha1(c)));
         commitfile.createNewFile();
         writeObject(commitfile, c);
 
         //保存信息
         for (String filename : c.getTracked().keySet()) {
-            File file = join(SAVED_DIR, "%s".formatted(_sha1(c)), "%s".formatted(filename));
+            File file = join(SAVED_DIR, "%s".formatted(msha1(c)), "%s".formatted(filename));
             file.createNewFile();
             writeContents(file, c.getTracked().get(filename).getContent());
         }
@@ -199,9 +209,10 @@ public class Repository implements Serializable {
 
         //更新删除区
         loadRemoved();
-
         //若该文件与当前提交的版本相同则不添加
-        if (!index.getHead().getTracked().isEmpty() && index.getHead().getTracked().containsKey(file.getName()) && index.getHead().getTracked().get(file.getName()).equal(blob)) {
+        if (!index.getHead().getTracked().isEmpty()
+                && index.getHead().getTracked().containsKey(file.getName())
+                && index.getHead().getTracked().get(file.getName()).equal(blob)) {
             //如果已经暂存则从暂存区删除
             staged.remove(file.getName());
             writeObject(STAGED, staged);
@@ -209,7 +220,6 @@ public class Repository implements Serializable {
             index.save();
             return;
         }
-
         //已经暂存覆盖原有文件
         if (staged.containsKey(file.getName())) {
             staged.replace(file.getName(), blob);
@@ -217,13 +227,11 @@ public class Repository implements Serializable {
             //未暂存直接添加文件
             staged.put(file.getName(), blob);
         }
-
         //已删除则不暂存
         if (removed.containsKey(file.getName())) {
             staged.remove(file.getName());
             betweenStagedAndRemoved.put(file.getName(), blob);
         }
-
         removed.clear();
         //保存文件
         writeObject(STAGED, staged);
@@ -277,7 +285,7 @@ public class Repository implements Serializable {
         index.save();
     }
 
-    public void checkout_b(String branchName) throws IOException {
+    public void checkoutB(String branchName) throws IOException {
         index.load();
         staged = readObject(STAGED, staged.getClass());
         removed = readObject(REMOVED, removed.getClass());
@@ -293,7 +301,8 @@ public class Repository implements Serializable {
         //检查是否有未追踪文件被覆盖
         boolean isuntracked = false;
         for (String filename : Objects.requireNonNull(plainFilenamesIn(CWD))) {
-            if (!index.getHead().getTracked().containsKey(filename) && index.getBranchHeadCommit(branchName).getTracked().containsKey(filename)) {
+            if (!index.getHead().getTracked().containsKey(filename)
+                    && index.getBranchHeadCommit(branchName).getTracked().containsKey(filename)) {
                 isuntracked = true;
                 break;
             }
@@ -387,7 +396,7 @@ public class Repository implements Serializable {
 
     }
 
-    public void global_log() {
+    public void globalLog() {
         index.load();
         for (Commit c : index.getAllCommits()) {
             if (c == null) {
@@ -463,38 +472,44 @@ public class Repository implements Serializable {
         System.out.println();
         //修改但未暂存文件
         System.out.println("=== Modifications Not Staged For Commit ===");
-        for (String filename : index.CwdAllFiles().keySet()) {
+        for (String filename : index.cwdAllFiles().keySet()) {
             //1.在当前提交中跟踪，工作目录中修改，且未暂存
-            if (index.getHead().getTracked().containsKey(filename) && !index.CwdAllFiles().get(filename).equal(index.getHead().getTracked().get(filename)) && !staged.containsKey(filename)) {
+            if (index.getHead().getTracked().containsKey(filename)
+                    && !index.cwdAllFiles().get(filename).equal(index.getHead().getTracked().get(filename))
+                    && !staged.containsKey(filename)) {
                 System.out.println(filename + " " + "(modified)");
             }
             //2.已暂存，但内容不同
-            if (staged.containsKey(filename) && !staged.get(filename).equal(index.CwdAllFiles().get(filename))) {
+            if (staged.containsKey(filename)
+                    && !staged.get(filename).equal(index.cwdAllFiles().get(filename))) {
                 System.out.println(filename + " " + "(modified)");
             }
         }
         //3.已暂存，工作目录中已删除
         for (String filename : staged.keySet()) {
-            if (!index.CwdAllFiles().containsKey(filename)) {
+            if (!index.cwdAllFiles().containsKey(filename)) {
                 System.out.println(filename + " " + "(deleted)");
             }
         }
         //4.在目录中删除而在当前提交中跟踪，且未处于删除区
         for (String filename : index.getHead().getTracked().keySet()) {
-            if (!index.CwdAllFiles().containsKey(filename) && !removed.containsKey(filename)) {
+            if (!index.cwdAllFiles().containsKey(filename)
+                    && !removed.containsKey(filename)) {
                 System.out.println(filename + " " + "(deleted)");
             }
         }
         System.out.println();
         //未跟踪文件
         System.out.println("=== Untracked Files ===");
-        for (String filename : index.CwdAllFiles().keySet()) {
+        for (String filename : index.cwdAllFiles().keySet()) {
             //既没有暂存，也没有提交
-            if (!staged.containsKey(filename) && !index.getHead().getTracked().containsKey(filename) && !betweenStagedAndRemoved.containsKey(filename)) {
+            if (!staged.containsKey(filename) && !index.getHead().getTracked().containsKey(filename)
+                    && !betweenStagedAndRemoved.containsKey(filename)) {
                 System.out.println(filename);
             }
             //已删除却重新创建
-            if (removed.containsKey(filename) && !staged.containsKey(filename) && !betweenStagedAndRemoved.containsKey(filename)) {
+            if (removed.containsKey(filename) && !staged.containsKey(filename)
+                    && !betweenStagedAndRemoved.containsKey(filename)) {
                 System.out.println(filename);
             }
         }
@@ -526,19 +541,22 @@ public class Repository implements Serializable {
             File file = join(CWD, "%s".formatted(filename));
             Blob blob = new Blob(file);
             //未跟踪文件
-            if (!index.getHead().getTracked().containsKey(filename) && target.getTracked().containsKey(filename)) {
+            if (!index.getHead().getTracked().containsKey(filename)
+                    && target.getTracked().containsKey(filename)) {
                 message("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
             //跳过冗余文件
-            if (!index.getHead().getTracked().containsKey(filename) && !target.getTracked().containsKey(filename)) {
+            if (!index.getHead().getTracked().containsKey(filename)
+                    && !target.getTracked().containsKey(filename)) {
                 continue;
             }
             if (index.getHead().getTracked().containsKey(filename)) {
                 continue;
             }
             //删除的情况
-            if (target.getTracked().containsKey(filename) && !index.getHead().getTracked().containsKey(filename)) {
+            if (target.getTracked().containsKey(filename)
+                    && !index.getHead().getTracked().containsKey(filename)) {
                 continue;
             }
             if (target.getTracked().containsKey(filename)) {
@@ -555,7 +573,7 @@ public class Repository implements Serializable {
         }
 
         //删除该提交中未跟踪的文件
-        for (String filename : index.CwdAllFiles().keySet()) {
+        for (String filename : index.cwdAllFiles().keySet()) {
             if (!index.getHead().getTracked().containsKey(filename)) {
                 File file = join(CWD, filename);
                 file.delete();
@@ -575,11 +593,39 @@ public class Repository implements Serializable {
         index.load();
         index.merge(branchName);
         Date date = new Date();
-        Commit mergeCommit = new Commit("Merged %s into %s.".formatted(branchName, index.getCurrentBranch()), "n", date, index.getHead());
+        Commit mergeCommit = new Commit("Merged %s into %s.".formatted(branchName,
+                index.getCurrentBranch()), "n", date, index.getHead());
         mergeCommit.getParent().add(index.getBranchHeadCommit(branchName));
         commit(mergeCommit);
         index.addParent(branchName);
         index.save();
     }
+
+    public void addRemote(String name, String dir) {
+        load();
+        //存在同名仓库
+        if (remoteRepo.containsKey(name)) {
+            message("A remote with that name already exists.");
+            System.exit(0);
+        }
+        remoteRepo.put(name, dir);
+        save();
+    }
+
+    public void removeRemote(String name) {
+        load();
+        //不存在对应名字
+        if (!remoteRepo.containsKey(name)) {
+            message("A remote with that name does not exist.");
+            System.exit(0);
+        }
+        remoteRepo.remove(name);
+        save();
+    }
+
+    public void fetch(String remoteName, String remoteBranchName) {
+
+    }
+
 
 }

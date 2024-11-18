@@ -63,7 +63,7 @@ class Utils {
         return sha1(vals.toArray(new Object[vals.size()]));
     }
 
-    static String _sha1 (Serializable obj) {
+    static String msha1(Serializable obj) {
         return sha1((Object) serialize(obj));
     }
     /* FILE DELETION */

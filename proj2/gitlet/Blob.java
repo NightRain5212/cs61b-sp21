@@ -24,6 +24,6 @@ public class Blob implements Serializable {
 
     public boolean equal(Object b) {
         Blob b1 = (Blob) b;
-        return _sha1(this).equals(_sha1(b1));
+        return msha1(this).equals(msha1(b1));
     }
 }
