@@ -322,7 +322,7 @@ public class Index implements Serializable {
                 StringBuilder conflict1 = new StringBuilder();
                 conflict1.append("<<<<<<< HEAD");
                 conflict1.append(System.lineSeparator()).append("=======").append(System.lineSeparator());
-                conflict1.append(b.getContent()).append(System.lineSeparator()).append(">>>>>>>");
+                conflict1.append(b.getContent()).append(">>>>>>>");
                 file.createNewFile();
                 writeContents(file,conflict1.toString());
                 Blob newb = new Blob(file);
@@ -335,7 +335,7 @@ public class Index implements Serializable {
                 Blob b = getHead().tracked.get(filename);
                 StringBuilder conflict2 = new StringBuilder();
                 conflict2.append("<<<<<<< HEAD").append(System.lineSeparator());
-                conflict2.append(b.getContent()).append(System.lineSeparator());
+                conflict2.append(b.getContent());
                 conflict2.append("=======").append(System.lineSeparator());
                 conflict2.append(">>>>>>>");
                 file.createNewFile();
@@ -352,9 +352,9 @@ public class Index implements Serializable {
                    Blob b2 = getBranchHead(branchName).item.tracked.get(filename);
                    StringBuilder conflict3 = new StringBuilder();
                    conflict3.append("<<<<<<< HEAD").append(System.lineSeparator());
-                   conflict3.append(b1.getContent()).append(System.lineSeparator());
+                   conflict3.append(b1.getContent());
                    conflict3.append("=======").append(System.lineSeparator());
-                   conflict3.append(b2.getContent()).append(System.lineSeparator());
+                   conflict3.append(b2.getContent());
                    conflict3.append(">>>>>>>");
                    file.createNewFile();
                    writeContents(file,conflict3.toString());

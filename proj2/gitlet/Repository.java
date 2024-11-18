@@ -1,10 +1,11 @@
 package gitlet;
 
+import jdk.jfr.FlightRecorder;
+
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.sql.SQLSyntaxErrorException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -40,6 +41,7 @@ public class Repository implements Serializable {
     public static final File REPO = join(CWD,".gitlet","repo");
     public static final File SAVED_DIR = join(CWD,".gitlet","saved");
     public static final File REMOVED = join(CWD,".gitlet","removed");
+    public static final File BETWEEN = join(CWD,".gitlet","between");
 
     /* TODO: fill in the rest of this class. */
     //管理提交的目录
@@ -47,6 +49,7 @@ public class Repository implements Serializable {
     //暂存区
     public HashMap<String,Blob> staged;
     public HashMap<String,Blob> removed;
+    public HashMap<String,Blob> betweenStagedAndRemoved;
 
     /*tree：
     * - .gitlet/
@@ -80,15 +83,18 @@ public class Repository implements Serializable {
         INDEX.createNewFile();
         STAGED.createNewFile();
         REMOVED.createNewFile();
+        BETWEEN.createNewFile();
         Date date = new Date(0L);
         Commit init = new Commit("initial commit","n",date,null);
         staged = new HashMap<>();
         index = new Index();
         removed = new HashMap<>();
+        betweenStagedAndRemoved = new HashMap<>();
         index.add(init);
         index.save();
         writeObject(STAGED,staged);
         writeObject(REMOVED,removed);
+        writeObject(BETWEEN,betweenStagedAndRemoved);
         this.save();
     }
 
@@ -101,6 +107,7 @@ public class Repository implements Serializable {
         index = saved.index;
         staged = saved.staged;
         removed = saved.removed;
+        betweenStagedAndRemoved = saved.betweenStagedAndRemoved;
     }
 
     public void loadStaged() {
@@ -179,6 +186,7 @@ public class Repository implements Serializable {
         //读取文件
         index.load();
         staged = readObject(STAGED,staged.getClass());
+        betweenStagedAndRemoved = readObject(BETWEEN,betweenStagedAndRemoved.getClass());
         //文件不存在报错
         if(!file.exists()) {
             message("File does not exist.");
@@ -212,11 +220,13 @@ public class Repository implements Serializable {
         //已删除则不暂存
         if(removed.containsKey(file.getName())) {
             staged.remove(file.getName());
+            betweenStagedAndRemoved.put(file.getName(),blob);
         }
 
         removed.clear();
         //保存文件
         writeObject(STAGED,staged);
+        writeObject(BETWEEN,betweenStagedAndRemoved);
         saveRemoved();
         index.save();
 
@@ -426,6 +436,7 @@ public class Repository implements Serializable {
         index.load();
         staged = readObject(STAGED,staged.getClass());
         removed = readObject(REMOVED,removed.getClass());
+        betweenStagedAndRemoved = readObject(BETWEEN,betweenStagedAndRemoved.getClass());
         //显示分支
         System.out.println("=== Branches ===");
         String cur = "*" + index.getCurrentBranch();
@@ -478,11 +489,11 @@ public class Repository implements Serializable {
         System.out.println("=== Untracked Files ===");
         for(String filename:index.CwdAllFiles().keySet()) {
             //既没有暂存，也没有提交
-            if(!staged.containsKey(filename) && !index.getHead().tracked.containsKey(filename)) {
+            if(!staged.containsKey(filename) && !index.getHead().tracked.containsKey(filename) && !betweenStagedAndRemoved.containsKey(filename)) {
                 System.out.println(filename);
             }
             //已删除却重新创建
-            if(removed.containsKey(filename)) {
+            if(removed.containsKey(filename) && !staged.containsKey(filename) && !betweenStagedAndRemoved.containsKey(filename)) {
                 System.out.println(filename);
             }
         }
@@ -540,6 +551,14 @@ public class Repository implements Serializable {
         index.save();
         for(String filename: index.getHead().tracked.keySet()) {
             checkout1(filename);
+        }
+
+        //删除该提交中未跟踪的文件
+        for(String filename : index.CwdAllFiles().keySet()) {
+            if(!index.getHead().tracked.containsKey(filename)) {
+                File file = join(CWD,filename);
+                file.delete();
+            }
         }
         index.save();
         //清楚暂存区
