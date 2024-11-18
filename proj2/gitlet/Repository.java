@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.sql.SQLSyntaxErrorException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -450,9 +451,41 @@ public class Repository implements Serializable {
         System.out.println();
         //修改但未暂存文件
         System.out.println("=== Modifications Not Staged For Commit ===");
+        for(String filename:index.CwdAllFiles().keySet()) {
+            //1.在当前提交中跟踪，工作目录中修改，且未暂存
+            if(index.getHead().tracked.containsKey(filename) && !index.CwdAllFiles().get(filename).equals(index.getHead().tracked.get(filename)) && !staged.containsKey(filename)) {
+                System.out.println(filename+" "+"(modified)");
+            }
+            //2.已暂存，但内容不同
+            if(staged.containsKey(filename) && !staged.get(filename).equals(index.CwdAllFiles().get(filename))) {
+                System.out.println(filename+" "+"(modified)");
+            }
+        }
+        //3.已暂存，工作目录中已删除
+        for(String filename:staged.keySet()) {
+            if(!index.CwdAllFiles().containsKey(filename)) {
+                System.out.println(filename + " " + "(deleted)");
+            }
+        }
+        //4.在目录中删除而在当前提交中跟踪，且未处于删除区
+        for(String filename:index.getHead().tracked.keySet()) {
+            if(!index.CwdAllFiles().containsKey(filename) && !removed.containsKey(filename)) {
+                System.out.println(filename + " " + "(deleted)");
+            }
+        }
         System.out.println();
         //未跟踪文件
         System.out.println("=== Untracked Files ===");
+        for(String filename:index.CwdAllFiles().keySet()) {
+            //既没有暂存，也没有提交
+            if(!staged.containsKey(filename) && !index.getHead().tracked.containsKey(filename)) {
+                System.out.println(filename);
+            }
+            //已删除却重新创建
+            if(removed.containsKey(filename)) {
+                System.out.println(filename);
+            }
+        }
         System.out.println();
     }
 

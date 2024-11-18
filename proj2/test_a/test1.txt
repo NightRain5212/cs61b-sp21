@@ -1,0 +1,15 @@
+java gitlet.Main init
+java gitlet.Main add f.txt
+java gitlet.Main add g.txt
+java gitlet.Main commit "2f"
+java gitlet.Main branch other
+java gitlet.Main add h.txt
+java gitlet.Main rm g.txt
+java gitlet.Main commit "add h rm g"
+java gitlet.Main checkout other
+java gitlet.Main rm f.txt
+java gitlet.Main add k.txt
+java gitlet.Main commit "add k rm f"
+java gitlet.Main checkout master
+java gitlet.Main merge other
+java gitlet.Main log

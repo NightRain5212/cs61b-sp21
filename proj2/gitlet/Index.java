@@ -319,9 +319,12 @@ public class Index implements Serializable {
                 isConflict = true;
                 File file = join(CWD,"%s".formatted(filename));
                 Blob b = getBranchHead(branchName).item.tracked.get(filename);
-                String content = "<<<<<<< HEAD\n" + "\n=======\n" + b.getContent() + "\n>>>>>>>";
+                StringBuilder conflict1 = new StringBuilder();
+                conflict1.append("<<<<<<< HEAD");
+                conflict1.append(System.lineSeparator()).append("=======").append(System.lineSeparator());
+                conflict1.append(b.getContent()).append(System.lineSeparator()).append(">>>>>>>");
                 file.createNewFile();
-                writeContents(file,content);
+                writeContents(file,conflict1.toString());
                 Blob newb = new Blob(file);
                 repo.staged.put(filename,newb);
             }
@@ -330,9 +333,13 @@ public class Index implements Serializable {
                 isConflict = true;
                 File file = join(CWD,"%s".formatted(filename));
                 Blob b = getHead().tracked.get(filename);
-                String content = "<<<<<<< HEAD\n" + b.getContent() + "\n=======\n" + "\n>>>>>>>";
+                StringBuilder conflict2 = new StringBuilder();
+                conflict2.append("<<<<<<< HEAD").append(System.lineSeparator());
+                conflict2.append(b.getContent()).append(System.lineSeparator());
+                conflict2.append("=======").append(System.lineSeparator());
+                conflict2.append(">>>>>>>");
                 file.createNewFile();
-                writeContents(file,content);
+                writeContents(file,conflict2.toString());
                 Blob newb = new Blob(file);
                 repo.staged.put(filename,newb);
             }
@@ -343,9 +350,14 @@ public class Index implements Serializable {
                    File file = join(CWD,"%s".formatted(filename));
                    Blob b1 = getHead().tracked.get(filename);
                    Blob b2 = getBranchHead(branchName).item.tracked.get(filename);
-                   String content = "<<<<<<< HEAD\n" + b1.getContent() + "\n=======\n" + b2.getContent() + "\n>>>>>>>";
+                   StringBuilder conflict3 = new StringBuilder();
+                   conflict3.append("<<<<<<< HEAD").append(System.lineSeparator());
+                   conflict3.append(b1.getContent()).append(System.lineSeparator());
+                   conflict3.append("=======").append(System.lineSeparator());
+                   conflict3.append(b2.getContent()).append(System.lineSeparator());
+                   conflict3.append(">>>>>>>");
                    file.createNewFile();
-                   writeContents(file,content);
+                   writeContents(file,conflict3.toString());
                    Blob newb = new Blob(file);
                    repo.staged.put(filename,newb);
                }
