@@ -58,7 +58,7 @@ public class Repository implements Serializable {
     public HashMap<String, Blob> getBetweenStagedAndRemoved() {
         return betweenStagedAndRemoved;
     }
-    public Index getIndex () {
+    public Index getIndex() {
         return index;
     }
     /*tree：
