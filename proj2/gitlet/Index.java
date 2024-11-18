@@ -204,10 +204,10 @@ public class Index implements Serializable {
         return allFiles;
     }
 
-    private void mergeError(Repository repo, String branchName , Node commonParent, Node bHead)
+    private void mergeError(Repository repo, String branchName, Node commonParent, Node bHead)
             throws IOException {
         //有暂存文件则报错
-        if (!repo.staged.isEmpty()) {
+        if (!repo.getStaged().isEmpty()) {
             message("You have uncommitted changes.");
             System.exit(0);
         }
@@ -235,7 +235,7 @@ public class Index implements Serializable {
         }
     }
 
-    private void mergeNoConflict(Repository repo, Node commonParent , Node bHead , String branchName)
+    private void mergeNoConflict(Repository repo, Node commonParent, Node bHead, String branchName)
             throws IOException {
         //仅在给定分支存在的文件检出暂存
         for (String filename : bHead.item.getTracked().keySet()) {
@@ -243,18 +243,20 @@ public class Index implements Serializable {
                     && !getHead().getTracked().containsKey(filename)) {
                 //覆盖未追踪文件报错
                 if (cwdAllFiles().containsKey(filename)) {
-                    message("There is an untracked file in the way; delete it, or add and commit it first.");
+                    message("There is an untracked file in the way; delete it" +
+                            ", or add and commit it first.");
                     System.exit(0);
                 }
                 File file = join(CWD, "%s".formatted(filename));
                 Blob b = getBranchHead(branchName).item.getTracked().get(filename);
                 file.createNewFile();
                 writeContents(file, b.getContent());
-                repo.staged.put(filename, b);
+                repo.getStaged().put(filename, b);
             }
             //给定分支不修改，当前分支不存在，不管
             if (commonParent.item.getTracked().containsKey(filename)
-                    && bHead.item.getTracked().get(filename).equal(commonParent.item.getTracked().get(filename))
+                    && bHead.item.getTracked().get(filename).equal(
+                            commonParent.item.getTracked().get(filename))
                     && !getHead().getTracked().containsKey(filename)) {
                 continue;
             }
@@ -266,7 +268,8 @@ public class Index implements Serializable {
         for (String filename : filenames) {
             //当前分支中未修改，给定分支不存在的文件被删除
             if (commonParent.item.getTracked().containsKey(filename)
-                    && getHead().getTracked().get(filename).equal(commonParent.item.getTracked().get(filename))
+                    && getHead().getTracked().get(filename).equal(
+                            commonParent.item.getTracked().get(filename))
                     && !getBranchHead(branchName).item.getTracked().containsKey(filename)) {
                 File file = join(CWD, "%s".formatted(filename));
                 Blob b = new Blob(file);
@@ -276,19 +279,21 @@ public class Index implements Serializable {
             //当前分支未修改，给定分支修改的文件检出暂存
             if (getBranchHead(branchName).item.getTracked().containsKey(filename)
                     && commonParent.item.getTracked().containsKey(filename)
-                    && getHead().getTracked().get(filename).equal(commonParent.item.getTracked().get(filename))
+                    && getHead().getTracked().get(filename).equal(
+                            commonParent.item.getTracked().get(filename))
                     && !getHead().getTracked().get(filename).equal(
                     getBranchHead(branchName).item.getTracked().get(filename))) {
                 File file = join(CWD, "%s".formatted(filename));
                 Blob b = getBranchHead(branchName).item.getTracked().get(filename);
                 file.createNewFile();
                 writeContents(file, b.getContent());
-                repo.staged.put(filename, b);
+                repo.getStaged().put(filename, b);
             }
             //当前分支中修改，给定分支不修改的情况不管
             if (commonParent.item.getTracked().containsKey(filename)
                     && getBranchHead(branchName).item.getTracked().containsKey(filename)
-                    && !getHead().getTracked().get(filename).equal(commonParent.item.getTracked().get(filename))
+                    && !getHead().getTracked().get(filename).equal(
+                            commonParent.item.getTracked().get(filename))
                     && getBranchHead(branchName).item.getTracked().get(filename).equal(
                     commonParent.item.getTracked().get(filename))) {
                 continue;
@@ -308,8 +313,8 @@ public class Index implements Serializable {
         Node commonParent = getCommonParent(branchName);
         Node bHead = getBranchHead(branchName);
         boolean isConflict = false;
-        mergeError(repo,branchName,commonParent,bHead);
-        mergeNoConflict(repo,commonParent,bHead,branchName);
+        mergeError(repo, branchName, commonParent, bHead);
+        mergeNoConflict(repo, commonParent, bHead, branchName);
         //合并冲突
         for (String filename : Objects.requireNonNull(commonParent).item.getTracked().keySet()) {
             //1.给定分支修改，当前分支删除
@@ -328,7 +333,7 @@ public class Index implements Serializable {
                 file.createNewFile();
                 writeContents(file, conflict1.toString());
                 Blob newb = new Blob(file);
-                repo.staged.put(filename, newb);
+                repo.getStaged().put(filename, newb);
             }
             //2.当前分支修改，给定分支删除
             if (getHead().getTracked().containsKey(filename)
@@ -346,12 +351,13 @@ public class Index implements Serializable {
                 file.createNewFile();
                 writeContents(file, conflict2.toString());
                 Blob newb = new Blob(file);
-                repo.staged.put(filename, newb);
+                repo.getStaged().put(filename, newb);
             }
             //3.当前与给定分支均修改，修改方式不同。
             if (getHead().getTracked().containsKey(filename)
                     && getBranchHead(branchName).item.getTracked().containsKey(filename)
-                    && !getHead().getTracked().get(filename).equal(commonParent.item.getTracked().get(filename))
+                    && !getHead().getTracked().get(filename).equal(
+                            commonParent.item.getTracked().get(filename))
                     && !getBranchHead(branchName).item.getTracked().get(filename).equal(
                             commonParent.item.getTracked().get(filename))) {
                 if (!getHead().getTracked().get(filename).equal(
@@ -369,7 +375,7 @@ public class Index implements Serializable {
                     file.createNewFile();
                     writeContents(file, conflict3.toString());
                     Blob newb = new Blob(file);
-                    repo.staged.put(filename, newb);
+                    repo.getStaged().put(filename, newb);
                 }
             }
         }
@@ -439,7 +445,7 @@ public class Index implements Serializable {
         private List<Node> parent;
         private Node son;
 
-        public Node(Commit c) {
+        Node(Commit c) {
             item = c;
             parent = new ArrayList<>();
             son = null;

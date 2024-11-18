@@ -41,8 +41,6 @@ public class Repository implements Serializable {
     public static final File SAVED_DIR = join(CWD, ".gitlet", "saved");
     public static final File REMOVED = join(CWD, ".gitlet", "removed");
     public static final File BETWEEN = join(CWD, ".gitlet", "between");
-    public static final File REMOTE = join(CWD, ".gitlet", "remote");
-    public static final File REMOTEBRANCH = join(CWD,".gitlet","remotebranch");
 
     //管理提交的目录
     private Index index;
@@ -51,9 +49,15 @@ public class Repository implements Serializable {
     private HashMap<String, Blob> removed;
     private HashMap<String, Blob> betweenStagedAndRemoved;
 
-    //远程仓库
-    private HashMap<String,String> remoteRepo;
-
+    public HashMap<String, Blob> getStaged() {
+        return staged;
+    }
+    public HashMap<String, Blob> getRemoved() {
+        return removed;
+    }
+    public HashMap<String, Blob> getBetweenStagedAndRemoved() {
+        return betweenStagedAndRemoved;
+    }
     /*tree：
      * - .gitlet/
      *   -commits
@@ -84,26 +88,22 @@ public class Repository implements Serializable {
         COMMIT_DIR.mkdir();
         SAVED_DIR.mkdir();
         //储存远程仓库的信息
-        REMOTEBRANCH.mkdir();
         REPO.createNewFile();
         INDEX.createNewFile();
         STAGED.createNewFile();
         REMOVED.createNewFile();
         BETWEEN.createNewFile();
-        REMOTE.createNewFile();
         Date date = new Date(0L);
         Commit init = new Commit("initial commit", "n", date, null);
         staged = new HashMap<>();
         index = new Index();
         removed = new HashMap<>();
-        remoteRepo = new HashMap<>();
         betweenStagedAndRemoved = new HashMap<>();
         index.add(init);
         index.save();
         writeObject(STAGED, staged);
         writeObject(REMOVED, removed);
         writeObject(BETWEEN, betweenStagedAndRemoved);
-        writeObject(REMOTE,remoteRepo);
         this.save();
     }
 
@@ -117,7 +117,6 @@ public class Repository implements Serializable {
         staged = saved.staged;
         removed = saved.removed;
         betweenStagedAndRemoved = saved.betweenStagedAndRemoved;
-        remoteRepo = saved.remoteRepo;
     }
 
     public void loadStaged() {
@@ -308,7 +307,8 @@ public class Repository implements Serializable {
             }
         }
         if (isuntracked) {
-            message("There is an untracked file in the way; delete it, or add and commit it first.");
+            message("There is an untracked file in the way; delete it" +
+                    ", or add and commit it first.");
             System.exit(0);
         }
         //切换分支
@@ -353,13 +353,15 @@ public class Repository implements Serializable {
             String id = index.getIdSet().get(i);
             if (i.getParent().size() == 2) {
                 Formatter formatter2 = new Formatter();
-                formatter2.format("Merge: %.7s %.7s", index.getParentId(id, 0), index.getParentId(id, 1));
+                formatter2.format("Merge: %.7s %.7s", index.getParentId(id, 0)
+                        , index.getParentId(id, 1));
                 System.out.println(formatter2.toString());
             }
             //设置日期格式
             Instant instant = i.getDate().toInstant();
             ZonedDateTime zdt = instant.atZone(ZoneId.of("Asia/Shanghai"));
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z", Locale.ENGLISH);
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z"
+                    , Locale.ENGLISH);
             String dateMsg = zdt.format(dtf);
             System.out.println("Date: " + dateMsg);
             System.out.println(i.getMessage());
@@ -411,13 +413,15 @@ public class Repository implements Serializable {
             String id = index.getIdSet().get(c);
             if (c.getParent().size() == 2) {
                 Formatter formatter2 = new Formatter();
-                formatter2.format("Merge: %.7s %.7s", index.getParentId(id, 0), index.getParentId(id, 1));
+                formatter2.format("Merge: %.7s %.7s", index.getParentId(id, 0)
+                        , index.getParentId(id, 1));
                 System.out.println(formatter2.toString());
             }
             //设置日期格式
             Instant instant = c.getDate().toInstant();
             ZonedDateTime zdt = instant.atZone(ZoneId.of("Asia/Shanghai"));
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z", Locale.ENGLISH);
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss yyyy Z"
+                    , Locale.ENGLISH);
             String dateMsg = zdt.format(dtf);
             System.out.println("Date: " + dateMsg);
             System.out.println(c.getMessage());
@@ -475,7 +479,8 @@ public class Repository implements Serializable {
         for (String filename : index.cwdAllFiles().keySet()) {
             //1.在当前提交中跟踪，工作目录中修改，且未暂存
             if (index.getHead().getTracked().containsKey(filename)
-                    && !index.cwdAllFiles().get(filename).equal(index.getHead().getTracked().get(filename))
+                    && !index.cwdAllFiles().get(filename).equal(
+                            index.getHead().getTracked().get(filename))
                     && !staged.containsKey(filename)) {
                 System.out.println(filename + " " + "(modified)");
             }
@@ -503,7 +508,8 @@ public class Repository implements Serializable {
         System.out.println("=== Untracked Files ===");
         for (String filename : index.cwdAllFiles().keySet()) {
             //既没有暂存，也没有提交
-            if (!staged.containsKey(filename) && !index.getHead().getTracked().containsKey(filename)
+            if (!staged.containsKey(filename) &&
+                    !index.getHead().getTracked().containsKey(filename)
                     && !betweenStagedAndRemoved.containsKey(filename)) {
                 System.out.println(filename);
             }
@@ -543,7 +549,8 @@ public class Repository implements Serializable {
             //未跟踪文件
             if (!index.getHead().getTracked().containsKey(filename)
                     && target.getTracked().containsKey(filename)) {
-                message("There is an untracked file in the way; delete it, or add and commit it first.");
+                message("There is an untracked file in the way; delete it" +
+                        ", or add and commit it first.");
                 System.exit(0);
             }
             //跳过冗余文件
@@ -560,7 +567,8 @@ public class Repository implements Serializable {
                 continue;
             }
             if (target.getTracked().containsKey(filename)) {
-                message("There is an untracked file in the way; delete it, or add and commit it first.");
+                message("There is an untracked file in the way; delete it" +
+                        ", or add and commit it first.");
                 System.exit(0);
             }
         }
@@ -600,32 +608,5 @@ public class Repository implements Serializable {
         index.addParent(branchName);
         index.save();
     }
-
-    public void addRemote(String name, String dir) {
-        load();
-        //存在同名仓库
-        if (remoteRepo.containsKey(name)) {
-            message("A remote with that name already exists.");
-            System.exit(0);
-        }
-        remoteRepo.put(name, dir);
-        save();
-    }
-
-    public void removeRemote(String name) {
-        load();
-        //不存在对应名字
-        if (!remoteRepo.containsKey(name)) {
-            message("A remote with that name does not exist.");
-            System.exit(0);
-        }
-        remoteRepo.remove(name);
-        save();
-    }
-
-    public void fetch(String remoteName, String remoteBranchName) {
-
-    }
-
 
 }
