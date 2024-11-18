@@ -21,8 +21,8 @@ public class Blob implements Serializable {
     public String getContent() {
         return filecontent;
     }
-    @Override
-    public boolean equals(Object b) {
+
+    public boolean equal(Object b) {
         Blob b1 = (Blob) b;
         return _sha1(this).equals(_sha1(b1));
     }

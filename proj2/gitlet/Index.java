@@ -9,38 +9,13 @@ import static gitlet.Repository.*;
 import static gitlet.Utils.*;
 
 public class Index implements Serializable {
-    private HashMap<String,Commit> CommitSet;
-    private HashMap<Commit,String> IdSet;
-    private HashMap<String,Node> NodeSet;
-    private class Node implements Serializable {
-        public Commit item;
-        public List<Node> parent;
-        public Node son;
-
-        public Node(Commit c) {
-            item = c;
-            parent = new ArrayList<>();
-            son = null;
-        }
-
-        public Node getParent() {
-            if(this.parent.isEmpty()) {
-                return null;
-            }
-            return this.parent.get(0);
-        }
-
-        public Node getsParent() {
-            if(this.parent.size() != 2) {
-                return null;
-            }
-            return this.parent.get(1);
-        }
-    }
-
+    private final Queue<Node> queue = new ArrayDeque<>();
+    private HashMap<String, Commit> CommitSet;
+    private HashMap<Commit, String> IdSet;
+    private HashMap<String, Node> NodeSet;
     private Node head;
     private String curBranch;
-    private HashMap<String,Node> branches;
+    private HashMap<String, Node> branches;
 
     //初始化
     public Index() {
@@ -49,24 +24,24 @@ public class Index implements Serializable {
         NodeSet = new HashMap<>();
         IdSet = new HashMap<>();
         Node master = new Node(null);
-        branches.put("master",master);
+        branches.put("master", master);
         head = master;
         curBranch = "master";
-        NodeSet.put("init",master);
+        NodeSet.put("init", master);
         this.save();
     }
 
     //添加提交
     public void add(Commit c) {
         load();
-        CommitSet.put(_sha1(c),c);
-        IdSet.put(c,_sha1(c));
+        CommitSet.put(_sha1(c), c);
+        IdSet.put(c, _sha1(c));
         Node newnode = new Node(c);
         newnode.parent.add(head);
-        NodeSet.put(_sha1(c),newnode);
+        NodeSet.put(_sha1(c), newnode);
         head.son = newnode;
         head = newnode;
-        branches.replace(curBranch,head);
+        branches.replace(curBranch, head);
         save();
     }
 
@@ -79,31 +54,32 @@ public class Index implements Serializable {
     //维护节点
     public void update() {
         load();
-        for(Node n:NodeSet.values()) {
-            if(n.item == null) {
+        for (Node n : NodeSet.values()) {
+            if (n.item == null) {
                 continue;
             }
-            File savedDir = join(SAVED_DIR,"%s".formatted(IdSet.get(n.item)));
+            File savedDir = join(SAVED_DIR, "%s".formatted(IdSet.get(n.item)));
             //考虑init commit的情况
-            if(plainFilenamesIn(savedDir) == null) {
+            if (plainFilenamesIn(savedDir) == null) {
                 continue;
             }
-            n.item.tracked.clear();
+            n.item.getTracked().clear();
             for (String filename : (Objects.requireNonNull(plainFilenamesIn(savedDir)))) {
-                File updated = join(savedDir,"%s".formatted(filename));
+                File updated = join(savedDir, "%s".formatted(filename));
                 Blob blob = new Blob(updated);
-                n.item.tracked.put(filename,blob);
+                n.item.getTracked().put(filename, blob);
             }
         }
         save();
     }
+
     //保存到文件
     public void save() {
-        writeObject(INDEX,this);
+        writeObject(INDEX, this);
     }
 
     public void load() {
-        Index saved = readObject(INDEX,Index.class);
+        Index saved = readObject(INDEX, Index.class);
         this.head = saved.head;
         this.branches = saved.branches;
         this.IdSet = saved.IdSet;
@@ -113,18 +89,18 @@ public class Index implements Serializable {
 
     //获取父提交
     public Commit getParent(int n) {
-        if(head.parent.get(n) == null) {
+        if (head.parent.get(n) == null) {
             return null;
         }
         return head.parent.get(n).item;
     }
 
-    public Commit getParent(String id,int n) {
+    public Commit getParent(String id, int n) {
         Node p = NodeSet.get(id);
         return p.parent.get(n).item;
     }
 
-    public String getParentId(String id,int n) {
+    public String getParentId(String id, int n) {
         Node p = NodeSet.get(id);
         return IdSet.get(p.parent.get(n).item);
     }
@@ -134,9 +110,14 @@ public class Index implements Serializable {
         return head.item;
     }
 
+    public void setHead(String commitId) {
+        Node target = NodeSet.get(commitId);
+        head = target;
+        branches.replace(curBranch, head);
+    }
 
     //获取对应id的提交
-    public Commit getCommit(String id){
+    public Commit getCommit(String id) {
         return CommitSet.get(id);
     }
 
@@ -145,8 +126,12 @@ public class Index implements Serializable {
         Node ohead = head;
         while (head != null) {
             logs.add(head.item);
-            if(!head.parent.isEmpty()){head = head.parent.get(0);}
-            if(head.parent.isEmpty()){break;}
+            if (!head.parent.isEmpty()) {
+                head = head.parent.get(0);
+            }
+            if (head.parent.isEmpty()) {
+                break;
+            }
         }
         head = ohead;
         return logs;
@@ -154,7 +139,7 @@ public class Index implements Serializable {
 
     public ArrayList<Commit> getAllCommits() {
         ArrayList<Commit> allCommits = new ArrayList<>();
-        for(Commit c:CommitSet.values()) {
+        for (Commit c : CommitSet.values()) {
             allCommits.add(c);
         }
         return allCommits;
@@ -162,7 +147,7 @@ public class Index implements Serializable {
 
     public ArrayList<String> getBranches() {
         ArrayList<String> allBranches = new ArrayList<>();
-        for(String str:branches.keySet()) {
+        for (String str : branches.keySet()) {
             allBranches.add(str);
         }
         return allBranches;
@@ -174,12 +159,12 @@ public class Index implements Serializable {
 
     public void newBranch(String name) {
         //已经存在名称报错
-        if(branches.containsKey(name)) {
+        if (branches.containsKey(name)) {
             message("A branch with that name already exists.");
             System.exit(0);
         }
         Node newBranch = head;
-        branches.put(name,newBranch);
+        branches.put(name, newBranch);
     }
 
     public void changeBranch(String name) {
@@ -193,34 +178,28 @@ public class Index implements Serializable {
 
     public void removeBranch(String name) {
         //不存在分支报错
-        if(!branches.containsKey(name)){
+        if (!branches.containsKey(name)) {
             message("A branch with that name does not exist.");
             System.exit(0);
         }
         //删除当前分支报错
-        if(name.equals(curBranch)) {
+        if (name.equals(curBranch)) {
             message("Cannot remove the current branch.");
             System.exit(0);
         }
         branches.remove(name);
     }
 
-    public void setHead(String commitId) {
-        Node target = NodeSet.get(commitId);
-        head = target;
-        branches.replace(curBranch,head);
-    }
-
     public boolean containsCommit(String commitId) {
         return CommitSet.containsKey(commitId);
     }
 
-    public HashMap<String,Blob> CwdAllFiles() {
-        HashMap<String,Blob> allFiles = new HashMap<>();
-        for(String filename: Objects.requireNonNull(plainFilenamesIn(CWD))) {
-            File file = join(CWD,"%s".formatted(filename));
+    public HashMap<String, Blob> CwdAllFiles() {
+        HashMap<String, Blob> allFiles = new HashMap<>();
+        for (String filename : Objects.requireNonNull(plainFilenamesIn(CWD))) {
+            File file = join(CWD, "%s".formatted(filename));
             Blob blob = new Blob(file);
-            allFiles.put(filename,blob);
+            allFiles.put(filename, blob);
         }
         return allFiles;
     }
@@ -233,17 +212,17 @@ public class Index implements Serializable {
         Node bHead = getBranchHead(branchName);
         boolean isConflict = false;
         //有暂存文件则报错
-        if(!repo.staged.isEmpty()) {
+        if (!repo.staged.isEmpty()) {
             message("You have uncommitted changes.");
             System.exit(0);
         }
         //不存在分支
-        if(!branches.containsKey(branchName)) {
+        if (!branches.containsKey(branchName)) {
             message("A branch with that name does not exist.");
             System.exit(0);
         }
         //合并自身
-        if(curBranch.equals(branchName)) {
+        if (curBranch.equals(branchName)) {
             message("Cannot merge a branch with itself.");
             System.exit(0);
         }
@@ -262,111 +241,112 @@ public class Index implements Serializable {
         }
 
         //仅在给定分支存在的文件检出暂存
-        for(String filename:bHead.item.tracked.keySet()) {
+        for (String filename : bHead.item.getTracked().keySet()) {
 
-            if(!Objects.requireNonNull(commonParent).item.tracked.containsKey(filename) && !getHead().tracked.containsKey(filename)) {
+            if (!Objects.requireNonNull(commonParent).item.getTracked().containsKey(filename) && !getHead().getTracked().containsKey(filename)) {
                 //覆盖未追踪文件报错
-                if(CwdAllFiles().containsKey(filename) ) {
+                if (CwdAllFiles().containsKey(filename)) {
                     message("There is an untracked file in the way; delete it, or add and commit it first.");
                     System.exit(0);
                 }
-                File file = join(CWD,"%s".formatted(filename));
-                Blob b = getBranchHead(branchName).item.tracked.get(filename);
+                File file = join(CWD, "%s".formatted(filename));
+                Blob b = getBranchHead(branchName).item.getTracked().get(filename);
                 file.createNewFile();
-                writeContents(file,b.getContent());
-                repo.staged.put(filename,b);
+                writeContents(file, b.getContent());
+                repo.staged.put(filename, b);
             }
             //给定分支不修改，当前分支不存在，不管
-            if(commonParent.item.tracked.containsKey(filename) && bHead.item.tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && !getHead().tracked.containsKey(filename)) {
+            if (commonParent.item.getTracked().containsKey(filename) && bHead.item.getTracked().get(filename).equal(commonParent.item.getTracked().get(filename)) && !getHead().getTracked().containsKey(filename)) {
                 continue;
             }
         }
 
         ArrayList<String> filenames = new ArrayList<>();
-        for(Blob b : getHead().tracked.values()) {
+        for (Blob b : getHead().getTracked().values()) {
             filenames.add(b.getName());
         }
-        for(String filename: filenames) {
+        for (String filename : filenames) {
             //当前分支中未修改，给定分支不存在的文件被删除
-            if(commonParent.item.tracked.containsKey(filename) && getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && !getBranchHead(branchName).item.tracked.containsKey(filename)) {
-                File file = join(CWD,"%s".formatted(filename));
+            if (commonParent.item.getTracked().containsKey(filename) && getHead().getTracked().get(filename).equal(commonParent.item.getTracked().get(filename)) && !getBranchHead(branchName).item.getTracked().containsKey(filename)) {
+                File file = join(CWD, "%s".formatted(filename));
                 Blob b = new Blob(file);
-                head.item.tracked.remove(filename);
+                head.item.getTracked().remove(filename);
                 file.delete();
             }
             //当前分支未修改，给定分支修改的文件检出暂存
-            if(getBranchHead(branchName).item.tracked.containsKey(filename) && commonParent.item.tracked.containsKey(filename) && getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && !getHead().tracked.get(filename).equals(getBranchHead(branchName).item.tracked.get(filename))) {
-                File file = join(CWD,"%s".formatted(filename));
-                Blob b = getBranchHead(branchName).item.tracked.get(filename);
+            if (getBranchHead(branchName).item.getTracked().containsKey(filename) && commonParent.item.getTracked().containsKey(filename) && getHead().getTracked().get(filename).equal(commonParent.item.getTracked().get(filename)) && !getHead().getTracked().get(filename).equal(getBranchHead(branchName).item.getTracked().get(filename))) {
+                File file = join(CWD, "%s".formatted(filename));
+                Blob b = getBranchHead(branchName).item.getTracked().get(filename);
                 file.createNewFile();
-                writeContents(file,b.getContent());
-                repo.staged.put(filename,b);
+                writeContents(file, b.getContent());
+                repo.staged.put(filename, b);
             }
             //当前分支中修改，给定分支不修改的情况不管
-            if (commonParent.item.tracked.containsKey(filename) && getBranchHead(branchName).item.tracked.containsKey(filename) && !getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && getBranchHead(branchName).item.tracked.get(filename).equals(commonParent.item.tracked.get(filename))) {
+            if (commonParent.item.getTracked().containsKey(filename) && getBranchHead(branchName).item.getTracked().containsKey(filename) && !getHead().getTracked().get(filename).equal(commonParent.item.getTracked().get(filename)) && getBranchHead(branchName).item.getTracked().get(filename).equal(commonParent.item.getTracked().get(filename))) {
                 continue;
             }
             //仅存在当前分支的文件保持不变
-            if(!commonParent.item.tracked.containsKey(filename) && !getBranchHead(branchName).item.tracked.containsKey(filename)) {
+            if (!commonParent.item.getTracked().containsKey(filename) && !getBranchHead(branchName).item.getTracked().containsKey(filename)) {
                 continue;
             }
         }
 
         //合并冲突
-        for(String filename: Objects.requireNonNull(commonParent).item.tracked.keySet()) {
+        for (String filename : Objects.requireNonNull(commonParent).item.getTracked().keySet()) {
             //1.给定分支修改，当前分支删除
-            if(getBranchHead(branchName).item.tracked.containsKey(filename) && !getHead().tracked.containsKey(filename) && !getBranchHead(branchName).item.tracked.get(filename).equals(commonParent.item.tracked.get(filename))) {
+            if (getBranchHead(branchName).item.getTracked().containsKey(filename) && !getHead().getTracked().containsKey(filename) && !getBranchHead(branchName).item.getTracked().get(filename).equal(commonParent.item.getTracked().get(filename))) {
                 isConflict = true;
-                File file = join(CWD,"%s".formatted(filename));
-                Blob b = getBranchHead(branchName).item.tracked.get(filename);
+                File file = join(CWD, "%s".formatted(filename));
+                Blob b = getBranchHead(branchName).item.getTracked().get(filename);
                 StringBuilder conflict1 = new StringBuilder();
-                conflict1.append("<<<<<<< HEAD");
-                conflict1.append(System.lineSeparator()).append("=======").append(System.lineSeparator());
-                conflict1.append(b.getContent()).append(">>>>>>>");
+                conflict1.append("<<<<<<< HEAD" + "\n");
+                conflict1.append("=======" + "\n");
+                conflict1.append(b.getContent());
+                conflict1.append(">>>>>>>" + "\n");
                 file.createNewFile();
-                writeContents(file,conflict1.toString());
+                writeContents(file, conflict1.toString());
                 Blob newb = new Blob(file);
-                repo.staged.put(filename,newb);
+                repo.staged.put(filename, newb);
             }
             //2.当前分支修改，给定分支删除
-            if(getHead().tracked.containsKey(filename) && !getBranchHead(branchName).item.tracked.containsKey(filename) && !getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename))) {
+            if (getHead().getTracked().containsKey(filename) && !getBranchHead(branchName).item.getTracked().containsKey(filename) && !getHead().getTracked().get(filename).equal(commonParent.item.getTracked().get(filename))) {
                 isConflict = true;
-                File file = join(CWD,"%s".formatted(filename));
-                Blob b = getHead().tracked.get(filename);
+                File file = join(CWD, "%s".formatted(filename));
+                Blob b = getHead().getTracked().get(filename);
                 StringBuilder conflict2 = new StringBuilder();
-                conflict2.append("<<<<<<< HEAD").append(System.lineSeparator());
+                conflict2.append("<<<<<<< HEAD" + "\n");
                 conflict2.append(b.getContent());
-                conflict2.append("=======").append(System.lineSeparator());
-                conflict2.append(">>>>>>>");
+                conflict2.append("=======" + "\n");
+                conflict2.append(">>>>>>>" + "\n");
                 file.createNewFile();
-                writeContents(file,conflict2.toString());
+                writeContents(file, conflict2.toString());
                 Blob newb = new Blob(file);
-                repo.staged.put(filename,newb);
+                repo.staged.put(filename, newb);
             }
             //3.当前与给定分支均修改，修改方式不同。
-            if(getHead().tracked.containsKey(filename) && getBranchHead(branchName).item.tracked.containsKey(filename) && !getHead().tracked.get(filename).equals(commonParent.item.tracked.get(filename)) && !getBranchHead(branchName).item.tracked.get(filename).equals(commonParent.item.tracked.get(filename))) {
-               if(!getHead().tracked.get(filename).equals(getBranchHead(branchName).item.tracked.get(filename))) {
-                   isConflict = true;
-                   File file = join(CWD,"%s".formatted(filename));
-                   Blob b1 = getHead().tracked.get(filename);
-                   Blob b2 = getBranchHead(branchName).item.tracked.get(filename);
-                   StringBuilder conflict3 = new StringBuilder();
-                   conflict3.append("<<<<<<< HEAD").append(System.lineSeparator());
-                   conflict3.append(b1.getContent());
-                   conflict3.append("=======").append(System.lineSeparator());
-                   conflict3.append(b2.getContent());
-                   conflict3.append(">>>>>>>");
-                   file.createNewFile();
-                   writeContents(file,conflict3.toString());
-                   Blob newb = new Blob(file);
-                   repo.staged.put(filename,newb);
-               }
-           }
+            if (getHead().getTracked().containsKey(filename) && getBranchHead(branchName).item.getTracked().containsKey(filename) && !getHead().getTracked().get(filename).equal(commonParent.item.getTracked().get(filename)) && !getBranchHead(branchName).item.getTracked().get(filename).equal(commonParent.item.getTracked().get(filename))) {
+                if (!getHead().getTracked().get(filename).equal(getBranchHead(branchName).item.getTracked().get(filename))) {
+                    isConflict = true;
+                    File file = join(CWD, "%s".formatted(filename));
+                    Blob b1 = getHead().getTracked().get(filename);
+                    Blob b2 = getBranchHead(branchName).item.getTracked().get(filename);
+                    StringBuilder conflict3 = new StringBuilder();
+                    conflict3.append("<<<<<<< HEAD" + "\n");
+                    conflict3.append(b1.getContent());
+                    conflict3.append("=======" + "\n");
+                    conflict3.append(b2.getContent());
+                    conflict3.append(">>>>>>>" + "\n");
+                    file.createNewFile();
+                    writeContents(file, conflict3.toString());
+                    Blob newb = new Blob(file);
+                    repo.staged.put(filename, newb);
+                }
+            }
         }
         repo.saveStaged();
         save();
         repo.save();
-        if(isConflict) {
+        if (isConflict) {
             message("Encountered a merge conflict.");
         }
 
@@ -382,10 +362,10 @@ public class Index implements Serializable {
 
     private Node getCommonParent(String name) {
         load();
-        return getCommonParent2(head,name,queue);
+        return getCommonParent2(head, name, queue);
     }
-    private final Queue<Node> queue = new ArrayDeque<>();
-    private Node getCommonParent2(Node node,String name,Queue<Node> q) {
+
+    private Node getCommonParent2(Node node, String name, Queue<Node> q) {
         load();
         ArrayList<Node> bLogs = new ArrayList<>();
         Node bHead = getBranchHead(name);
@@ -393,31 +373,59 @@ public class Index implements Serializable {
             bLogs.add(bHead);
             bHead = bHead.getParent();
         }
-        if(node == null) {
+        if (node == null) {
             return null;
         }
-        for(Node n:bLogs) {
-            if(n.item == null) {continue;}
-            if(n.item.getMessage().equals(node.item.getMessage())) {
+        for (Node n : bLogs) {
+            if (n.item == null) {
+                continue;
+            }
+            if (n.item.getMessage().equals(node.item.getMessage())) {
                 q.clear();
                 return n;
             }
         }
-        if(node.getParent() != null) {
+        if (node.getParent() != null) {
             queue.add(node.getParent());
         }
-        if(node.parent.size() == 2) {
+        if (node.parent.size() == 2) {
             queue.add(node.getsParent());
         }
-        return getCommonParent2(q.poll(),name,q);
+        return getCommonParent2(q.poll(), name, q);
 
     }
 
-    public HashMap<String,Commit> getCommitSet() {
+    public HashMap<String, Commit> getCommitSet() {
         return CommitSet;
     }
 
-    public HashMap<Commit,String> getIdSet() {
+    public HashMap<Commit, String> getIdSet() {
         return IdSet;
+    }
+
+    private class Node implements Serializable {
+        public Commit item;
+        public List<Node> parent;
+        public Node son;
+
+        public Node(Commit c) {
+            item = c;
+            parent = new ArrayList<>();
+            son = null;
+        }
+
+        public Node getParent() {
+            if (this.parent.isEmpty()) {
+                return null;
+            }
+            return this.parent.get(0);
+        }
+
+        public Node getsParent() {
+            if (this.parent.size() != 2) {
+                return null;
+            }
+            return this.parent.get(1);
+        }
     }
 }

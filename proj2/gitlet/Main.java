@@ -1,7 +1,9 @@
 package gitlet;
 
-/** Driver class for Gitlet, a subset of the Git version-control system.
- *  @author TODO
+/**
+ * Driver class for Gitlet, a subset of the Git version-control system.
+ *
+ * @author no
  */
 
 import java.io.File;
@@ -11,6 +13,7 @@ import java.util.Date;
 import static gitlet.Repository.CWD;
 import static gitlet.Repository.GITLET_DIR;
 import static gitlet.Utils.*;
+
 public class Main {
     static Repository repo = new Repository();
 
@@ -18,9 +21,8 @@ public class Main {
      *  <COMMAND> <OPERAND1> <OPERAND2> ... 
      */
 
-    public static void main(String[] args)  {
+    public static void main(String[] args) {
         try {
-            // TODO: what if args is empty?
             //没有参数的情况报错
             if (args.length == 0) {
                 message("Please enter a command.");
@@ -30,32 +32,29 @@ public class Main {
             String firstArg = args[0];
             switch (firstArg) {
                 case "init":
-                    // TODO: handle the `init` command
                     repo.init();
                     break;
                 case "add":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
-                    // TODO: handle the `add [filename]` command
                     String filename = args[1];
                     File file = join(CWD, "%s".formatted(filename));
                     repo.load();
                     repo.add(file);
                     repo.save();
                     break;
-                // TODO: FILL THE REST IN
                 case "commit":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
                     repo.load();
                     String msg = args[1];
-                    if(msg.isEmpty()) {
+                    if (msg.isEmpty()) {
                         message("Please enter a commit message.");
                         System.exit(0);
                     }
@@ -67,7 +66,7 @@ public class Main {
                     break;
                 case "rm":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
@@ -78,7 +77,7 @@ public class Main {
                     break;
                 case "log":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
@@ -87,7 +86,7 @@ public class Main {
                     break;
                 case "global-log":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
@@ -96,7 +95,7 @@ public class Main {
                     break;
                 case "find":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
@@ -106,7 +105,7 @@ public class Main {
                     break;
                 case "status":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
@@ -115,7 +114,7 @@ public class Main {
                     break;
                 case "checkout":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
@@ -127,7 +126,7 @@ public class Main {
                         String commitId = args[1];
                         String filename2 = args[3];
                         //不合法参数
-                        if(!args[2].equals("--")) {
+                        if (!args[2].equals("--")) {
                             message("Incorrect operands.");
                             System.exit(0);
                         }
@@ -140,7 +139,7 @@ public class Main {
                     break;
                 case "branch":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
@@ -151,7 +150,7 @@ public class Main {
                     break;
                 case "rm-branch":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
@@ -162,7 +161,7 @@ public class Main {
                     break;
                 case "reset":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
@@ -173,7 +172,7 @@ public class Main {
                     break;
                 case "merge":
                     //未初始化报错
-                    if(!GITLET_DIR.exists()) {
+                    if (!GITLET_DIR.exists()) {
                         message("Not in an initialized Gitlet directory.");
                         System.exit(0);
                     }
