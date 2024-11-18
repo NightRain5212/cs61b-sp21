@@ -342,7 +342,7 @@ public class Repository implements Serializable {
             System.out.println(formatter1.toString());
             //处理合并提交
             String id = index.getIdSet().get(i);
-            if (i.getTracked().size() == 2) {
+            if (i.getParent().size() == 2) {
                 Formatter formatter2 = new Formatter();
                 formatter2.format("Merge: %.7s %.7s", index.getParentId(id, 0), index.getParentId(id, 1));
                 System.out.println(formatter2.toString());
@@ -400,7 +400,7 @@ public class Repository implements Serializable {
             System.out.println(formatter1.toString());
             //处理合并提交
             String id = index.getIdSet().get(c);
-            if (c.getTracked().size() == 2) {
+            if (c.getParent().size() == 2) {
                 Formatter formatter2 = new Formatter();
                 formatter2.format("Merge: %.7s %.7s", index.getParentId(id, 0), index.getParentId(id, 1));
                 System.out.println(formatter2.toString());
