@@ -1,5 +1,7 @@
 ## This is my CS61b's assignment code
 
+- hello
+
 - Only for studying and communicating.
 - Weclcome to put forward your opinions.
 - Contact me at QQ:498187073.
